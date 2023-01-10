@@ -1,39 +1,38 @@
 use crate::data::activity::{Activity, Room, StaffMember};
-use crate::data::course::CourseIdentifier;
+use crate::data::course::{CourseCode, CourseIdentifier};
+use crate::data::semester::Semester;
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
-use reqwest::Client;
 use scraper::{Html, Selector};
 use serde::Deserialize;
 use std::collections::HashSet;
+use std::ops::Deref;
 
 pub async fn fetch_activities<'a>(
-    courses: impl IntoIterator<Item = CourseIdentifier<'a>>,
-    client: &Client,
+    semester: &Semester,
+    course_identifiers: impl IntoIterator<Item = &CourseIdentifier>,
+    client: &reqwest::Client,
 ) -> anyhow::Result<Vec<Activity>> {
-    let mut query = vec![
-        ("type".to_string(), "course".to_string()),
-        // TODO get semester
-        ("sem".to_string(), "23v".to_string()),
-    ];
+    let course_identifiers = course_identifiers.into_iter().collect_vec();
+    let query = vec![("type", "course"), ("sem", &*semester)];
 
-    let courses_query = courses
-        .into_iter()
+    let courses_query = course_identifiers
+        .iter()
         .map(|course_identifier| {
             let CourseIdentifier {
                 course_code,
                 course_term,
             } = course_identifier;
 
-            format!("{course_code},{course_term}")
+            format!("{},{}", course_code.deref(), course_term)
         })
-        .map(|course_identifier| ("id[]".to_string(), course_identifier));
-
-    query.extend(courses_query);
+        .map(|course_identifier| ("id[]".to_string(), course_identifier))
+        .collect_vec();
 
     let res = client
         .get("https://tp.educloud.no/ntnu/timeplan/index.php?type=course")
         .query(&query)
+        .query(&courses_query)
         .send()
         .await?;
 
@@ -116,7 +115,12 @@ pub async fn fetch_activities<'a>(
         pub rooms: Option<Vec<ParsedRoom>>,
     }
 
-    fn convert_activity(parsed_activity: ParsedActivity) -> anyhow::Result<Activity> {
+    fn convert_activity(
+        parsed_activity: ParsedActivity,
+        course_identifiers: &Vec<&CourseIdentifier>,
+    ) -> anyhow::Result<Activity> {
+        let course_identifiers = course_identifiers.into_iter().collect_vec();
+
         fn parse_date_time(input: String) -> anyhow::Result<DateTime<Utc>> {
             let date_time = DateTime::parse_from_str(&input, "%FT%T%#z")?.into();
 
@@ -127,9 +131,18 @@ pub async fn fetch_activities<'a>(
             vec.into_iter().map_into().collect()
         }
 
+        let course_code = CourseCode(parsed_activity.course_code);
+
+        let course_identifier = course_identifiers
+            .iter()
+            .find(|course_identifier| course_identifier.course_code == course_code)
+            .unwrap();
+
+        let course_identifier = (**course_identifier).clone();
+
         let activity = Activity {
             id: parsed_activity.id,
-            course_code: parsed_activity.course_code,
+            course_identifier,
             week: parsed_activity.week,
             start: parse_date_time(parsed_activity.start)?,
             end: parse_date_time(parsed_activity.end)?,
@@ -150,7 +163,7 @@ pub async fn fetch_activities<'a>(
 
     let activities = parsed_activities
         .into_iter()
-        .map(convert_activity)
+        .map(move |parsed_activity| convert_activity(parsed_activity, &course_identifiers))
         .try_collect()?;
 
     Ok(activities)

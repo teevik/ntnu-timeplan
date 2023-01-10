@@ -1,3 +1,4 @@
+use crate::data::course::CourseIdentifier;
 use chrono::{DateTime, Utc};
 use std::collections::HashSet;
 
@@ -17,7 +18,7 @@ pub struct StaffMember {
 #[derive(Debug)]
 pub struct Activity {
     pub id: String,
-    pub course_code: String,
+    pub course_identifier: CourseIdentifier,
     pub week: i32,
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,

@@ -1,10 +1,10 @@
-use crate::data::course::Course;
+use crate::data::course::{Course, CourseCode};
 use anyhow::Context;
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-pub async fn fetch_courses(client: &Client) -> anyhow::Result<HashMap<String, Course>> {
+pub async fn fetch_courses(client: &Client) -> anyhow::Result<HashMap<CourseCode, Course>> {
     let res = client
         .get("https://tp.uio.no/ntnu/timeplan/emner.php")
         .send()
@@ -40,7 +40,7 @@ pub async fn fetch_courses(client: &Client) -> anyhow::Result<HashMap<String, Co
     let courses = fetched_courses
         .into_iter()
         .map(|fetched_course| {
-            let course_code = fetched_course.code;
+            let course_code = CourseCode(fetched_course.code);
 
             let course = Course {
                 name: fetched_course.name,

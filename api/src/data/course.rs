@@ -1,4 +1,7 @@
-use derive_more::Constructor;
+use shrinkwraprs::Shrinkwrap;
+
+#[derive(Shrinkwrap, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CourseCode(pub String);
 
 #[derive(Debug)]
 pub struct Course {
@@ -6,8 +9,8 @@ pub struct Course {
     pub amount_of_terms: i32,
 }
 
-#[derive(Debug, Constructor)]
-pub struct CourseIdentifier<'a> {
-    pub course_code: &'a str,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CourseIdentifier {
+    pub course_code: CourseCode,
     pub course_term: i32,
 }
