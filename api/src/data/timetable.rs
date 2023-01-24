@@ -63,7 +63,7 @@ pub async fn generate_timetable(
         .collect::<HashMap<CourseIdentifier, HashSet<String>>>();
 
     let activities_for_courses = cache
-        .get_or_fetch_activities(semester, queries.keys(), client)
+        .get_or_fetch_activities(semester, queries.keys().cloned())
         .await?;
 
     let events = activities_for_courses

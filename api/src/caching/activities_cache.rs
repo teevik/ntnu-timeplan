@@ -4,6 +4,7 @@ use crate::data::semester::Semester;
 use crate::fetch::activities::fetch_activities;
 use itertools::Itertools;
 use mini_moka::sync::Cache;
+use reqwest::Client;
 use std::sync::Arc;
 use time::ext::NumericalStdDuration;
 
@@ -14,24 +15,24 @@ pub struct ActivitiesCacheKey {
 }
 
 pub struct ActivitiesCache {
+    client: Client,
     cache: Cache<ActivitiesCacheKey, Arc<ActivitiesForCourse>>,
 }
 
 impl ActivitiesCache {
-    pub fn new() -> Self {
+    pub fn new(client: Client) -> Self {
         let cache = Cache::builder()
             .max_capacity(500)
             .time_to_live(2.std_hours())
             .build();
 
-        Self { cache }
+        Self { cache, client }
     }
 
     pub async fn get_or_fetch_activities(
         &self,
         semester: &Semester,
-        course_identifiers: impl IntoIterator<Item = &CourseIdentifier>,
-        client: &reqwest::Client,
+        course_identifiers: impl IntoIterator<Item = CourseIdentifier>,
     ) -> anyhow::Result<Vec<(CourseIdentifier, Arc<ActivitiesForCourse>)>> {
         let course_identifiers = course_identifiers.into_iter().collect_vec();
 
@@ -54,7 +55,8 @@ impl ActivitiesCache {
         let cached_activities_for_courses = match activities_for_courses {
             Some(activities_for_courses) => activities_for_courses,
             None => {
-                let activities = fetch_activities(semester, course_identifiers, client).await?;
+                let activities =
+                    fetch_activities(semester, course_identifiers, &self.client).await?;
                 let activities_for_courses = get_activities_for_courses(activities);
 
                 let cached_activities_for_courses = activities_for_courses

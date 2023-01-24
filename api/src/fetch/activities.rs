@@ -10,7 +10,7 @@ use std::ops::Deref;
 
 pub async fn fetch_activities<'a>(
     semester: &Semester,
-    course_identifiers: impl IntoIterator<Item = &CourseIdentifier>,
+    course_identifiers: impl IntoIterator<Item = CourseIdentifier>,
     client: &reqwest::Client,
 ) -> anyhow::Result<Vec<Activity>> {
     let course_identifiers = course_identifiers.into_iter().collect_vec();
@@ -117,7 +117,7 @@ pub async fn fetch_activities<'a>(
 
     fn convert_activity(
         parsed_activity: ParsedActivity,
-        course_identifiers: &Vec<&CourseIdentifier>,
+        course_identifiers: &Vec<CourseIdentifier>,
     ) -> anyhow::Result<Activity> {
         let course_identifiers = course_identifiers.into_iter().collect_vec();
 

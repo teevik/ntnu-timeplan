@@ -3,7 +3,7 @@ use shrinkwraprs::Shrinkwrap;
 #[derive(Shrinkwrap, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CourseCode(pub String);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Course {
     pub name: String,
     pub amount_of_terms: i32,

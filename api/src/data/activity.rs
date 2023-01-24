@@ -2,14 +2,14 @@ use crate::data::course::CourseIdentifier;
 use chrono::{DateTime, Utc};
 use std::collections::HashSet;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Room {
     pub name: String,
     pub building_name: String,
     pub url: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StaffMember {
     pub first_name: String,
     pub last_name: String,
