@@ -1,8 +1,6 @@
-use crate::data::activities_for_courses::{get_activities_for_courses, ActivitiesForCourse};
-use crate::data::course::CourseIdentifier;
 use crate::fetch::activities::fetch_activities;
-use itertools::Itertools;
 use mini_moka::sync::Cache;
+use ntnu_timeplan_shared::{Activity, CourseIdentifier};
 use reqwest::Client;
 use std::sync::Arc;
 use time::ext::NumericalStdDuration;
@@ -15,7 +13,7 @@ pub struct ActivitiesCacheKey {
 
 pub struct ActivitiesCache {
     client: Client,
-    cache: Cache<ActivitiesCacheKey, Arc<ActivitiesForCourse>>,
+    cache: Cache<ActivitiesCacheKey, Arc<Vec<Activity>>>,
 }
 
 impl ActivitiesCache {
@@ -30,49 +28,23 @@ impl ActivitiesCache {
 
     pub async fn get_or_fetch_activities(
         &self,
-        semester: &str,
-        course_identifiers: impl IntoIterator<Item = CourseIdentifier>,
-    ) -> anyhow::Result<Vec<(CourseIdentifier, Arc<ActivitiesForCourse>)>> {
-        let course_identifiers = course_identifiers.into_iter().collect_vec();
-
-        let get_cache_key = |course_identifier: CourseIdentifier| ActivitiesCacheKey {
-            semester: semester.to_owned(),
-            course_identifier,
+        semester: String,
+        course_identifier: CourseIdentifier,
+    ) -> anyhow::Result<Arc<Vec<Activity>>> {
+        let cache_key = ActivitiesCacheKey {
+            semester: semester.clone(),
+            course_identifier: course_identifier.clone(),
         };
 
-        let activities_for_courses = course_identifiers
-            .iter()
-            .cloned()
-            .map(|course_identifier| {
-                let cache_key = get_cache_key(course_identifier.clone());
-                let activities_for_course = self.cache.get(&cache_key)?;
+        if let Some(cache_result) = self.cache.get(&cache_key) {
+            return Ok(cache_result);
+        }
 
-                Some((cache_key.course_identifier, activities_for_course))
-            })
-            .collect::<Option<Vec<(CourseIdentifier, Arc<ActivitiesForCourse>)>>>();
+        let activities = fetch_activities(semester, &course_identifier, &self.client).await?;
+        let activities = Arc::new(activities);
 
-        let cached_activities_for_courses = match activities_for_courses {
-            Some(activities_for_courses) => activities_for_courses,
-            None => {
-                let activities =
-                    fetch_activities(semester, course_identifiers, &self.client).await?;
-                let activities_for_courses = get_activities_for_courses(activities);
+        self.cache.insert(cache_key, activities.clone());
 
-                let cached_activities_for_courses = activities_for_courses
-                    .into_iter()
-                    .map(|(course_identifier, activities_for_course)| {
-                        let cache_key = get_cache_key(course_identifier.clone());
-                        let activities_for_course = Arc::new(activities_for_course);
-                        self.cache.insert(cache_key, activities_for_course.clone());
-
-                        (course_identifier, activities_for_course)
-                    })
-                    .collect_vec();
-
-                cached_activities_for_courses
-            }
-        };
-
-        Ok(cached_activities_for_courses)
+        Ok(activities)
     }
 }

@@ -1,5 +1,5 @@
-use crate::data::course::Course;
 use anyhow::Context;
+use ntnu_timeplan_shared::Course;
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;

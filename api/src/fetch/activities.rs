@@ -1,37 +1,29 @@
-use crate::data::activity::{Activity, Room, StaffMember};
-use crate::data::course::CourseIdentifier;
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
+use ntnu_timeplan_shared::{Activity, CourseIdentifier, Room, StaffMember};
 use scraper::{Html, Selector};
 use serde::Deserialize;
 use std::collections::HashSet;
-use std::ops::Deref;
 
 pub async fn fetch_activities<'a>(
-    semester: &str,
-    course_identifiers: impl IntoIterator<Item = CourseIdentifier>,
+    semester: impl Into<String>,
+    course_identifier: &CourseIdentifier,
     client: &reqwest::Client,
 ) -> anyhow::Result<Vec<Activity>> {
-    let course_identifiers = course_identifiers.into_iter().collect_vec();
-    let query = vec![("type", "course"), ("sem", &*semester)];
+    let CourseIdentifier {
+        course_code,
+        course_term,
+    } = course_identifier;
 
-    let courses_query = course_identifiers
-        .iter()
-        .map(|course_identifier| {
-            let CourseIdentifier {
-                course_code,
-                course_term,
-            } = course_identifier;
-
-            format!("{},{}", course_code.deref(), course_term)
-        })
-        .map(|course_identifier| ("id[]".to_string(), course_identifier))
-        .collect_vec();
+    let query = vec![
+        ("type", "course".to_owned()),
+        ("sem", semester.into()),
+        ("id[]", format!("{},{}", course_code, course_term)),
+    ];
 
     let res = client
         .get("https://tp.educloud.no/ntnu/timeplan/index.php?type=course")
         .query(&query)
-        .query(&courses_query)
         .send()
         .await?;
 
@@ -53,12 +45,12 @@ pub async fn fetch_activities<'a>(
         pub url: String,
     }
 
-    impl Into<Room> for ParsedRoom {
-        fn into(self) -> Room {
+    impl From<ParsedRoom> for Room {
+        fn from(parsed_room: ParsedRoom) -> Room {
             Room {
-                name: self.name,
-                building_name: self.building_name,
-                url: self.url,
+                name: parsed_room.name,
+                building_name: parsed_room.building_name,
+                url: parsed_room.url,
             }
         }
     }
@@ -72,11 +64,11 @@ pub async fn fetch_activities<'a>(
         pub last_name: String,
     }
 
-    impl Into<StaffMember> for ParsedStaffMember {
-        fn into(self) -> StaffMember {
+    impl From<ParsedStaffMember> for StaffMember {
+        fn from(parsed_staff_member: ParsedStaffMember) -> StaffMember {
             StaffMember {
-                first_name: self.first_name,
-                last_name: self.last_name,
+                first_name: parsed_staff_member.first_name,
+                last_name: parsed_staff_member.last_name,
             }
         }
     }
@@ -114,12 +106,7 @@ pub async fn fetch_activities<'a>(
         pub rooms: Option<Vec<ParsedRoom>>,
     }
 
-    fn convert_activity(
-        parsed_activity: ParsedActivity,
-        course_identifiers: &Vec<CourseIdentifier>,
-    ) -> anyhow::Result<Activity> {
-        let course_identifiers = course_identifiers.into_iter().collect_vec();
-
+    fn convert_activity(parsed_activity: ParsedActivity) -> anyhow::Result<Activity> {
         fn parse_date_time(input: String) -> anyhow::Result<DateTime<Utc>> {
             let date_time = DateTime::parse_from_str(&input, "%FT%T%#z")?.into();
 
@@ -132,16 +119,9 @@ pub async fn fetch_activities<'a>(
 
         let course_code = parsed_activity.course_code;
 
-        let course_identifier = course_identifiers
-            .iter()
-            .find(|course_identifier| course_identifier.course_code == course_code)
-            .unwrap();
-
-        let course_identifier = (**course_identifier).clone();
-
         let activity = Activity {
             id: parsed_activity.id,
-            course_identifier,
+            course_code,
             week: parsed_activity.week,
             start: parse_date_time(parsed_activity.start)?,
             end: parse_date_time(parsed_activity.end)?,
@@ -162,7 +142,7 @@ pub async fn fetch_activities<'a>(
 
     let activities = parsed_activities
         .into_iter()
-        .map(move |parsed_activity| convert_activity(parsed_activity, &course_identifiers))
+        .map(convert_activity)
         .try_collect()?;
 
     Ok(activities)

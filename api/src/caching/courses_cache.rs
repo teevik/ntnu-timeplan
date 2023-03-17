@@ -1,5 +1,5 @@
-use crate::data::course::Course;
 use crate::fetch::courses::fetch_courses;
+use ntnu_timeplan_shared::Course;
 use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Arc;
