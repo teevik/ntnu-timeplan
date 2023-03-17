@@ -4,16 +4,25 @@
 use crate::caching::activities_cache::ActivitiesCache;
 use crate::caching::courses_cache::CoursesCache;
 use crate::caching::semesters_cache::SemestersCache;
+use crate::handlers::activities::activities_handler;
+use crate::handlers::courses::courses_handler;
+use crate::handlers::semesters::semesters_handler;
+use axum::error_handling::HandleErrorLayer;
 use axum::routing::get;
-use axum::Router;
+use axum::{BoxError, Router};
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tower::ServiceBuilder;
+use tower_governor::errors::display_error;
+use tower_governor::governor::GovernorConfigBuilder;
+use tower_governor::GovernorLayer;
 use tracing::info;
 
+mod app_error;
 mod caching;
-mod calendar;
 mod fetch;
+mod handlers;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -43,15 +52,35 @@ async fn main() -> anyhow::Result<()> {
         Err(_) => 8080,
     };
 
+    let governor_conf = Box::new(
+        GovernorConfigBuilder::default()
+            .per_second(1)
+            .burst_size(10)
+            .finish()
+            .unwrap(),
+    );
+
+    let governor_layer = ServiceBuilder::new()
+        .layer(HandleErrorLayer::new(|e: BoxError| async move {
+            display_error(e)
+        }))
+        .layer(GovernorLayer {
+            config: Box::leak(governor_conf),
+        });
+
     let router = Router::new()
         .route("/", get(async || "halla"))
-        .with_state(app_state);
+        .route("/semesters", get(semesters_handler))
+        .route("/courses", get(courses_handler))
+        .route("/activities", get(activities_handler))
+        .with_state(app_state)
+        .layer(governor_layer);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     info!("listening on http://{}", addr);
 
     axum::Server::bind(&addr)
-        .serve(router.into_make_service())
+        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
         .await?;
 
     Ok(())

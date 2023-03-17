@@ -17,7 +17,7 @@ pub struct StaffMember {
     pub last_name: String,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Activity {
     pub id: String,
     pub course_code: String,
@@ -53,4 +53,20 @@ pub struct Course {
 pub struct CourseIdentifier {
     pub course_code: String,
     pub course_term: i32,
+    pub semester: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Semester {
+    pub semester: String,
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SemestersWithCurrent {
+    pub semesters: Vec<Semester>,
+    pub current_semester: Semester,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct A {}

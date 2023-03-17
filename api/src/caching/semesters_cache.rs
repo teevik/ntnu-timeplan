@@ -1,4 +1,5 @@
-use crate::fetch::semesters::{fetch_semesters, FetchedSemesters};
+use crate::fetch::semesters::fetch_semesters;
+use ntnu_timeplan_shared::SemestersWithCurrent;
 use reqwest::Client;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -9,7 +10,7 @@ use tracing::info;
 pub struct SemestersCache {
     client: Client,
     last_time_fetched: RwLock<Instant>,
-    fetched_semesters: RwLock<Arc<FetchedSemesters>>,
+    fetched_semesters: RwLock<Arc<SemestersWithCurrent>>,
 }
 
 impl SemestersCache {
@@ -24,9 +25,8 @@ impl SemestersCache {
         })
     }
 
-    pub async fn get_or_fetch(&self) -> anyhow::Result<Arc<FetchedSemesters>> {
-        // const CACHE_DURATION: Duration = 1.std_weeks();
-        const CACHE_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 7);
+    pub async fn get_or_fetch(&self) -> anyhow::Result<Arc<SemestersWithCurrent>> {
+        const CACHE_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 7); // 1 week
 
         let last_time_fetched = *self.last_time_fetched.read().await;
         let cache_out_of_date = Instant::now() > (last_time_fetched + CACHE_DURATION);

@@ -6,13 +6,13 @@ use serde::Deserialize;
 use std::collections::HashSet;
 
 pub async fn fetch_activities<'a>(
-    semester: impl Into<String>,
     course_identifier: &CourseIdentifier,
     client: &reqwest::Client,
 ) -> anyhow::Result<Vec<Activity>> {
     let CourseIdentifier {
         course_code,
         course_term,
+        semester,
     } = course_identifier;
 
     let query = vec![

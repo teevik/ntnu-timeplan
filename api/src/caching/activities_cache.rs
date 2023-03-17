@@ -4,16 +4,11 @@ use ntnu_timeplan_shared::{Activity, CourseIdentifier};
 use reqwest::Client;
 use std::sync::Arc;
 use time::ext::NumericalStdDuration;
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct ActivitiesCacheKey {
-    pub semester: String,
-    pub course_identifier: CourseIdentifier,
-}
+use tracing::info;
 
 pub struct ActivitiesCache {
     client: Client,
-    cache: Cache<ActivitiesCacheKey, Arc<Vec<Activity>>>,
+    cache: Cache<CourseIdentifier, Arc<Vec<Activity>>>,
 }
 
 impl ActivitiesCache {
@@ -26,24 +21,19 @@ impl ActivitiesCache {
         Self { cache, client }
     }
 
-    pub async fn get_or_fetch_activities(
+    pub async fn get_or_fetch(
         &self,
-        semester: String,
         course_identifier: CourseIdentifier,
     ) -> anyhow::Result<Arc<Vec<Activity>>> {
-        let cache_key = ActivitiesCacheKey {
-            semester: semester.clone(),
-            course_identifier: course_identifier.clone(),
-        };
-
-        if let Some(cache_result) = self.cache.get(&cache_key) {
+        if let Some(cache_result) = self.cache.get(&course_identifier) {
             return Ok(cache_result);
         }
 
-        let activities = fetch_activities(semester, &course_identifier, &self.client).await?;
+        info!("Fetching activities for {:?}", &course_identifier);
+        let activities = fetch_activities(&course_identifier, &self.client).await?;
         let activities = Arc::new(activities);
 
-        self.cache.insert(cache_key, activities.clone());
+        self.cache.insert(course_identifier, activities.clone());
 
         Ok(activities)
     }

@@ -27,8 +27,7 @@ impl CoursesCache {
     }
 
     pub async fn get_or_fetch(&self) -> anyhow::Result<Arc<HashMap<String, Course>>> {
-        // const CACHE_DURATION: Duration = 1.std_weeks();
-        const CACHE_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 7);
+        const CACHE_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 7); // 1 week
 
         let last_time_fetched = *self.last_time_fetched.read().await;
         let cache_out_of_date = Instant::now() > (last_time_fetched + CACHE_DURATION);

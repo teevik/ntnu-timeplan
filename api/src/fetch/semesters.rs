@@ -1,20 +1,9 @@
 use anyhow::Context;
 use reqwest::Client;
 use scraper::{Html, Selector};
+use ntnu_timeplan_shared::{Semester, SemestersWithCurrent};
 
-#[derive(Debug, Clone)]
-pub struct FetchedSemester {
-    pub semester: String,
-    pub name: String,
-}
-
-#[derive(Debug)]
-pub struct FetchedSemesters {
-    pub semesters: Vec<FetchedSemester>,
-    pub current_semester: FetchedSemester,
-}
-
-pub async fn fetch_semesters(client: &Client) -> anyhow::Result<FetchedSemesters> {
+pub async fn fetch_semesters(client: &Client) -> anyhow::Result<SemestersWithCurrent> {
     let response = client
         .get("https://tp.educloud.no/ntnu/timeplan/timeplan.php?type=courseact")
         .send()
@@ -29,7 +18,7 @@ pub async fn fetch_semesters(client: &Client) -> anyhow::Result<FetchedSemesters
 
     let result = {
         let mut current_semester = None;
-        let mut semesters = Vec::<FetchedSemester>::new();
+        let mut semesters = Vec::<Semester>::new();
 
         for element in elements {
             let semester = element.value().attr("value").context("Parsing error")?;
@@ -37,7 +26,7 @@ pub async fn fetch_semesters(client: &Client) -> anyhow::Result<FetchedSemesters
 
             let is_current_semester = element.value().attr("selected").is_some();
 
-            let fetched_semester = FetchedSemester {
+            let fetched_semester = Semester {
                 semester: semester.to_owned(),
                 name: semester_name.to_owned(),
             };
@@ -51,7 +40,7 @@ pub async fn fetch_semesters(client: &Client) -> anyhow::Result<FetchedSemesters
 
         let current_semester = current_semester.context("Parsing error")?;
 
-        FetchedSemesters {
+        SemestersWithCurrent {
             semesters,
             current_semester,
         }
