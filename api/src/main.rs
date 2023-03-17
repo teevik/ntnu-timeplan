@@ -1,10 +1,7 @@
 use crate::caching::activities_cache::ActivitiesCache;
 use crate::caching::courses_cache::CoursesCache;
 use crate::caching::semesters_cache::SemestersCache;
-use crate::data::course::{CourseCode, CourseIdentifier};
-use crate::data::timetable::{generate_timetable, TimetableQuery};
-use crate::fetch::courses::fetch_courses;
-use crate::fetch::semesters::fetch_semesters;
+use crate::calendar::calendar;
 use crate::graphql_model::{QueryRoot, TimeplanSchema};
 use async_graphql::http::GraphiQLSource;
 use async_graphql::{Context, EmptyMutation, EmptySubscription, Schema};
@@ -13,13 +10,13 @@ use axum::extract::State;
 use axum::response::{Html, IntoResponse};
 use axum::routing::get;
 use axum::{Extension, Router};
-use std::collections::HashSet;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
 
 mod caching;
+mod calendar;
 mod data;
 mod fetch;
 mod graphql_model;
@@ -129,6 +126,7 @@ async fn main() -> anyhow::Result<()> {
     // /timetable.ics?
     let router = Router::new()
         .route("/", get(graphiql).post(graphql_handler))
+        .route("/calendar.ics", get(calendar))
         .layer(Extension(schema))
         .with_state(app_state);
 

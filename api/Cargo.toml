@@ -23,3 +23,5 @@ mini-moka = "0.10.0"
 futures = "0.3"
 async-graphql = { version = "5.0", features = ["chrono"] }
 async-graphql-axum = "5.0"
+serde_urlencoded = "0.7"
+serde_qs = "0.11"

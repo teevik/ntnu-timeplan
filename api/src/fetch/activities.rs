@@ -1,6 +1,5 @@
 use crate::data::activity::{Activity, Room, StaffMember};
-use crate::data::course::{CourseCode, CourseIdentifier};
-use crate::data::semester::Semester;
+use crate::data::course::CourseIdentifier;
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use scraper::{Html, Selector};
@@ -9,7 +8,7 @@ use std::collections::HashSet;
 use std::ops::Deref;
 
 pub async fn fetch_activities<'a>(
-    semester: &Semester,
+    semester: &str,
     course_identifiers: impl IntoIterator<Item = CourseIdentifier>,
     client: &reqwest::Client,
 ) -> anyhow::Result<Vec<Activity>> {
@@ -131,7 +130,7 @@ pub async fn fetch_activities<'a>(
             vec.into_iter().map_into().collect()
         }
 
-        let course_code = CourseCode(parsed_activity.course_code);
+        let course_code = parsed_activity.course_code;
 
         let course_identifier = course_identifiers
             .iter()

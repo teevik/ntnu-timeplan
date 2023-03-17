@@ -1,7 +1,4 @@
-use shrinkwraprs::Shrinkwrap;
-
-#[derive(Shrinkwrap, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CourseCode(pub String);
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct Course {
@@ -9,8 +6,8 @@ pub struct Course {
     pub amount_of_terms: i32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CourseIdentifier {
-    pub course_code: CourseCode,
+    pub course_code: String,
     pub course_term: i32,
 }

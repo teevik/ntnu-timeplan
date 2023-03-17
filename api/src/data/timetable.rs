@@ -1,9 +1,9 @@
 use crate::caching::activities_cache::ActivitiesCache;
 use crate::data::activity::{Activity, Room};
 use crate::data::course::CourseIdentifier;
-use crate::data::semester::Semester;
 use icalendar::{Calendar, Component, Event, EventLike};
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 fn activity_to_event(activity: &Activity) -> Event {
@@ -46,15 +46,15 @@ fn activity_to_event(activity: &Activity) -> Event {
     event.done()
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TimetableQuery {
     pub course: CourseIdentifier,
     pub target_student_groups: HashSet<String>,
 }
 
 pub async fn generate_timetable(
-    semester: &Semester,
+    semester: &str,
     queries: impl IntoIterator<Item = TimetableQuery>,
-    client: &reqwest::Client,
     cache: &ActivitiesCache,
 ) -> anyhow::Result<Calendar> {
     let queries = queries

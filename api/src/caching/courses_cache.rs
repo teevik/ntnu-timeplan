@@ -1,4 +1,4 @@
-use crate::data::course::{Course, CourseCode};
+use crate::data::course::Course;
 use crate::fetch::courses::fetch_courses;
 use reqwest::Client;
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ use tracing::info;
 pub struct CoursesCache {
     client: Client,
     last_time_fetched: RwLock<Instant>,
-    courses: RwLock<Arc<HashMap<CourseCode, Course>>>,
+    courses: RwLock<Arc<HashMap<String, Course>>>,
 }
 
 impl CoursesCache {
@@ -26,7 +26,7 @@ impl CoursesCache {
         })
     }
 
-    pub async fn get_or_fetch(&self) -> anyhow::Result<Arc<HashMap<CourseCode, Course>>> {
+    pub async fn get_or_fetch(&self) -> anyhow::Result<Arc<HashMap<String, Course>>> {
         // const CACHE_DURATION: Duration = 1.std_weeks();
         const CACHE_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 7);
 

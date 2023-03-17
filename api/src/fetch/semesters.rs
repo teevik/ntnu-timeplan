@@ -1,11 +1,10 @@
-use crate::data::semester::Semester;
 use anyhow::Context;
 use reqwest::Client;
 use scraper::{Html, Selector};
 
 #[derive(Debug, Clone)]
 pub struct FetchedSemester {
-    pub semester: Semester,
+    pub semester: String,
     pub name: String,
 }
 
@@ -39,7 +38,7 @@ pub async fn fetch_semesters(client: &Client) -> anyhow::Result<FetchedSemesters
             let is_current_semester = element.value().attr("selected").is_some();
 
             let fetched_semester = FetchedSemester {
-                semester: Semester(semester.to_owned()),
+                semester: semester.to_owned(),
                 name: semester_name.to_owned(),
             };
 

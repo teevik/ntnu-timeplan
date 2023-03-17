@@ -1,18 +1,20 @@
+use crate::calendar::CalendarQuery;
 use crate::data::activities_for_courses::ActivitiesForCourse;
 use crate::data::activity::{Activity, Room, StaffMember};
-use crate::data::course::{Course, CourseCode, CourseIdentifier};
-use crate::data::semester::Semester;
+use crate::data::course::{Course, CourseIdentifier};
+use crate::data::timetable::{generate_timetable, TimetableQuery};
 use crate::fetch::semesters::FetchedSemester;
 use crate::AppState;
 use async_graphql::{Context, EmptyMutation, EmptySubscription, InputObject, Object, Schema};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 pub type TimeplanSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;
 
 pub struct CourseModel {
-    course_code: CourseCode,
+    course_code: String,
     course: Course,
 }
 
@@ -157,8 +159,23 @@ struct CourseIdentifierModel {
 impl From<CourseIdentifierModel> for CourseIdentifier {
     fn from(model: CourseIdentifierModel) -> Self {
         CourseIdentifier {
-            course_code: CourseCode(model.course_code),
+            course_code: model.course_code,
             course_term: model.course_term,
+        }
+    }
+}
+
+#[derive(InputObject, Clone)]
+struct TimetableQueryModel {
+    pub course: CourseIdentifierModel,
+    pub target_student_groups: HashSet<String>,
+}
+
+impl From<TimetableQueryModel> for TimetableQuery {
+    fn from(model: TimetableQueryModel) -> Self {
+        TimetableQuery {
+            course: model.course.into(),
+            target_student_groups: model.target_student_groups,
         }
     }
 }
@@ -214,7 +231,7 @@ impl QueryRoot {
 
         let a = app_state
             .activities_cache
-            .get_or_fetch_activities(&Semester(semester), courses.into_iter().map_into())
+            .get_or_fetch_activities(&semester, courses.into_iter().map_into())
             .await?;
 
         let pog = a
@@ -223,5 +240,39 @@ impl QueryRoot {
             .collect();
 
         Ok(pog)
+    }
+
+    async fn calendar_url<'ctx>(
+        &self,
+        ctx: &Context<'ctx>,
+        semester: String,
+        queries: Vec<TimetableQueryModel>,
+    ) -> anyhow::Result<String> {
+        let app_state = AppState::from_context(ctx);
+
+        let calendar_query = CalendarQuery {
+            semester,
+            timetable_queries: queries.into_iter().map_into().collect(),
+        };
+
+        let query_string = serde_qs::to_string(&calendar_query)?;
+
+        Ok("/calendar.ics?".to_string() + &query_string)
+
+        // let calendar_query: CalendarQuery = serde_qs::from_str(&raq_query).unwrap();
+
+        // let pog = generate_timetable(&semester, queries.into_iter().map_into()).await?;
+
+        // let a = app_state
+        //     .activities_cache
+        //     .get_or_fetch_activities(&Semester(semester), courses.into_iter().map_into())
+        //     .await?;
+        //
+        // let pog = a
+        //     .iter()
+        //     .map(|(_, b)| ActivitiesForCourseModel(b.clone()))
+        //     .collect();
+        //
+        // Ok(pog)
     }
 }
