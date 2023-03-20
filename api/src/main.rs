@@ -5,6 +5,7 @@ use crate::caching::activities_cache::ActivitiesCache;
 use crate::caching::courses_cache::CoursesCache;
 use crate::caching::semesters_cache::SemestersCache;
 use crate::handlers::activities::activities_handler;
+use crate::handlers::calendar::calendar_handler;
 use crate::handlers::courses::courses_handler;
 use crate::handlers::semesters::semesters_handler;
 use axum::error_handling::HandleErrorLayer;
@@ -17,6 +18,7 @@ use tower::ServiceBuilder;
 use tower_governor::errors::display_error;
 use tower_governor::governor::GovernorConfigBuilder;
 use tower_governor::GovernorLayer;
+use tower_http::cors::CorsLayer;
 use tracing::info;
 
 mod app_error;
@@ -49,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
 
     let port = match env::var("PORT") {
         Ok(val) => val.parse::<u16>()?,
-        Err(_) => 8080,
+        Err(_) => 3000,
     };
 
     let governor_conf = Box::new(
@@ -69,12 +71,13 @@ async fn main() -> anyhow::Result<()> {
         });
 
     let router = Router::new()
-        .route("/", get(async || "halla"))
         .route("/semesters", get(semesters_handler))
         .route("/courses", get(courses_handler))
         .route("/activities", get(activities_handler))
+        .route("/calendar.ics", get(calendar_handler))
         .with_state(app_state)
-        .layer(governor_layer);
+        .layer(governor_layer)
+        .layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     info!("listening on http://{}", addr);

@@ -40,14 +40,12 @@ pub async fn fetch_courses(client: &Client) -> anyhow::Result<HashMap<String, Co
     let courses = fetched_courses
         .into_iter()
         .map(|fetched_course| {
-            let course_code = fetched_course.code;
-
             let course = Course {
                 name: fetched_course.name,
                 amount_of_terms: fetched_course.amount_of_terms,
             };
 
-            (course_code, course)
+            (fetched_course.code, course)
         })
         .collect::<HashMap<_, _>>();
 
