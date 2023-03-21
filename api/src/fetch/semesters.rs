@@ -26,6 +26,8 @@ pub async fn fetch_semesters(client: &Client) -> anyhow::Result<SemestersWithCur
             let semester_code = element.value().attr("value").context("Parsing error")?;
             let semester_name = element.text().next().context("Parsing error")?;
 
+            if (semester_code == "showall") {continue}
+
             let is_current_semester = element.value().attr("selected").is_some();
 
             let semester = Semester {
