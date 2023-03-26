@@ -1,9 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use ts_rs::TS;
+use utoipa::{IntoParams, ToSchema};
 
-#[derive(TS, Deserialize, Serialize, Debug, Clone)]
+#[derive(TS, ToSchema, Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Room {
@@ -12,7 +13,7 @@ pub struct Room {
     pub url: String,
 }
 
-#[derive(TS, Deserialize, Serialize, Debug, Clone)]
+#[derive(TS, ToSchema, Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct StaffMember {
@@ -20,7 +21,7 @@ pub struct StaffMember {
     pub last_name: String,
 }
 
-#[derive(TS, Deserialize, Serialize, Debug, Clone)]
+#[derive(TS, ToSchema, Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Activity {
@@ -32,11 +33,11 @@ pub struct Activity {
     pub title: String,
     pub summary: String,
     pub staff_members: Vec<StaffMember>,
-    pub student_groups: HashSet<String>,
+    pub student_groups: Vec<String>,
     pub rooms: Vec<Room>,
 }
 
-#[derive(TS, Serialize, Deserialize, Debug, Clone)]
+#[derive(TS, ToSchema, Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Course {
@@ -44,7 +45,7 @@ pub struct Course {
     pub amount_of_terms: i32,
 }
 
-#[derive(TS, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(TS, ToSchema, IntoParams, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct CourseIdentifier {
@@ -53,14 +54,14 @@ pub struct CourseIdentifier {
     pub semester: String,
 }
 
-#[derive(TS, Serialize, Deserialize, Debug, Clone)]
+#[derive(TS, ToSchema, Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Semester {
     pub name: String,
 }
 
-#[derive(TS, Serialize, Deserialize, Debug, Clone)]
+#[derive(TS, ToSchema, Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct SemestersWithCurrent {
@@ -68,10 +69,10 @@ pub struct SemestersWithCurrent {
     pub current_semester: String,
 }
 
-#[derive(TS, Serialize, Deserialize, Debug, Clone)]
+#[derive(TS, ToSchema, Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct CalendarQuery {
     pub identifier: CourseIdentifier,
-    pub student_groups: HashSet<String>,
+    pub student_groups: Vec<String>,
 }

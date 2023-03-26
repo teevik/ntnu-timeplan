@@ -5,6 +5,14 @@ use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use axum::Json;
 
+#[utoipa::path(
+    get,
+    path = "/activities",
+    params(CourseIdentifier),
+    responses(
+        (status = 200, body = [Activity])
+    )
+)]
 pub async fn activities_handler(
     state: State<AppState>,
     course_identifier: Query<CourseIdentifier>,

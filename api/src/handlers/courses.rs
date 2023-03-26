@@ -4,6 +4,13 @@ use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::Json;
 
+#[utoipa::path(
+    get,
+    path = "/courses",
+    responses(
+        (status = 200, body = [Course])
+    )
+)]
 pub async fn courses_handler(state: State<AppState>) -> Result<impl IntoResponse, AppError> {
     let courses_cache = &state.courses_cache;
 

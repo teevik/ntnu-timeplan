@@ -29,5 +29,11 @@ tower-http = { version = "0.4", features = ["cors"] }
 tower_governor = "0.0.4"
 icalendar = "0.15"
 ts-rs = { version = "6.2", features = ["serde-compat", "chrono-impl"] }
-utoipa = { version = "3.1", features = ["axum_extras"] }
+utoipa = { version = "3.1", features = [
+  "axum_extras",
+  "chrono",
+  "preserve_order",
+] }
 utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
+data-encoding = "2.3"
+rmp-serde = "1.1"

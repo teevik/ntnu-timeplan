@@ -7,9 +7,15 @@ use crate::caching::semesters_cache::SemestersCache;
 use crate::handlers::activities::activities_handler;
 use crate::handlers::calendar::calendar_handler;
 use crate::handlers::courses::courses_handler;
+use crate::handlers::encode_calendar_query::encode_calendar_query_handler;
 use crate::handlers::semesters::semesters_handler;
+use crate::shared_types::{
+    Activity, CalendarQuery, Course, CourseIdentifier, Room, Semester, SemestersWithCurrent,
+    StaffMember,
+};
 use axum::error_handling::HandleErrorLayer;
-use axum::routing::get;
+use axum::response::Redirect;
+use axum::routing::{get, post};
 use axum::{BoxError, Router};
 use std::env;
 use std::net::SocketAddr;
@@ -20,9 +26,12 @@ use tower_governor::governor::GovernorConfigBuilder;
 use tower_governor::GovernorLayer;
 use tower_http::cors::CorsLayer;
 use tracing::info;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 mod app_error;
 mod caching;
+mod calendar_queries;
 mod fetch;
 mod handlers;
 mod shared_types;
@@ -55,9 +64,26 @@ fn install_tracing() {
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
     env::set_var("RUST_BACKTRACE", "1");
-
     install_tracing();
     color_eyre::install()?;
+
+    #[derive(OpenApi)]
+    #[openapi(
+        paths(
+            handlers::activities::activities_handler,
+            handlers::courses::courses_handler,
+            handlers::semesters::semesters_handler,
+            handlers::calendar::calendar_handler,
+            handlers::encode_calendar_query::encode_calendar_query_handler
+        ),
+        components(
+            schemas(Activity, CalendarQuery, Course, CourseIdentifier, Room, Semester, SemestersWithCurrent, StaffMember)
+        ),
+        tags(
+            (name = "ntnu-timeplan-api", description = "NTNU Timeplan API")
+        )
+    )]
+    struct ApiDoc;
 
     let reqwest_client = reqwest::Client::new();
 
@@ -93,9 +119,15 @@ async fn main() -> color_eyre::Result<()> {
         });
 
     let router = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi()))
+        .route("/", get(|| async { Redirect::to("/swagger-ui") }))
         .route("/semesters", get(semesters_handler))
         .route("/courses", get(courses_handler))
         .route("/activities", get(activities_handler))
+        .route(
+            "/encode-calendar-query",
+            post(encode_calendar_query_handler),
+        )
         .route("/calendar.ics", get(calendar_handler))
         .with_state(app_state)
         .layer(governor_layer)

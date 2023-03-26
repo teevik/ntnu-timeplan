@@ -28,19 +28,45 @@ import {
 
 const baseUrl = "http://localhost:3000";
 
-const fetcher = <T,>(url: string) =>
+const getFetcher = <T,>(url: string) =>
   fetch(baseUrl + url).then((res) => res.json() as T);
 
-const useFetch = <T,>(url: string) =>
-  useSWR(url, fetcher<T>, {
-    suspense: true,
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-  }).data;
+// const postFetcher = <T,>([url, body]: [string, BodyInit]) =>
+//   fetch(baseUrl + url, { method: "POST", body }).then((res) => res.json() as T);
 
-preload("/semesters", fetcher);
-preload("/courses", fetcher);
+const swrOptions = {
+  suspense: true,
+  revalidateIfStale: false,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+} as const;
+
+const useFetch = <T,>(url: string) =>
+  useSWR(url, getFetcher<T>, swrOptions).data;
+
+const encodeCalendarQueryFetcher = ([url, body]: [string, BodyInit]) =>
+  fetch(baseUrl + url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body,
+  }).then((res) => res.text());
+
+function useEncodeCalendarQuery(queries: CalendarQuery[]) {
+  const jsonQueries = useMemo(() => JSON.stringify(queries), [queries]);
+
+  const query = useSWR(
+    ["/encode-calendar-query", jsonQueries],
+    encodeCalendarQueryFetcher,
+    swrOptions
+  ).data;
+
+  return query;
+}
+
+preload("/semesters", getFetcher);
+preload("/courses", getFetcher);
 
 function formatStudentGroup(studentGroup: string) {
   studentGroup = studentGroup.replaceAll("_", " ");
@@ -235,19 +261,41 @@ function App() {
 
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
 
-  const queries: CalendarQuery[] = [];
-  for (const [courseCode, selectedCourse] of selectedCourses) {
-    queries.push({
-      identifier: {
-        courseCode,
-        semester: selectedSemester,
-        courseTerm: selectedCourse.term,
-      },
-      studentGroups: Array.from(selectedCourse.enabledStudentGroups.values()),
-    });
+  interface ShowCalendarUrlProps {
+    selectedCourses: Immutable.OrderedMap<string, SelectedCourseState>;
   }
 
-  const url = `${baseUrl}/calendar.ics?queries=${JSON.stringify(queries)}`;
+  function ShowCalendarUrl(props: ShowCalendarUrlProps) {
+    const { selectedCourses } = props;
+
+    const queries = useMemo(() => {
+      const queries: CalendarQuery[] = [];
+      for (const [courseCode, selectedCourse] of selectedCourses) {
+        queries.push({
+          identifier: {
+            courseCode,
+            semester: selectedSemester,
+            courseTerm: selectedCourse.term,
+          },
+          studentGroups: Array.from(
+            selectedCourse.enabledStudentGroups.values()
+          ),
+        });
+      }
+
+      return queries;
+    }, [selectedCourses]);
+
+    const encodedQuery = useEncodeCalendarQuery(queries);
+
+    const url = `${baseUrl}/calendar.ics?query=${encodedQuery}`;
+
+    return (
+      <Link href={url} target="_blank" sx={{ wordBreak: "break-all" }}>
+        {url}
+      </Link>
+    );
+  }
 
   return (
     <div className="App">
@@ -348,10 +396,10 @@ function App() {
             )}
           </Grid>
 
-          <Paper sx={{ padding: 2, mt: 2 }}>
-            <Link href={url} target="_blank">
-              {url}
-            </Link>
+          <Paper sx={{ padding: 2, mt: 3 }}>
+            <Suspense fallback={"Loading"}>
+              <ShowCalendarUrl selectedCourses={selectedCourses} />
+            </Suspense>
           </Paper>
         </Container>
       </div>

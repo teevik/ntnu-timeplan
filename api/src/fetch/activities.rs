@@ -2,7 +2,6 @@ use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use scraper::{Html, Selector};
 use serde::Deserialize;
-use std::collections::HashSet;
 
 use crate::shared_types::{Activity, CourseIdentifier, Room, StaffMember};
 
@@ -133,9 +132,7 @@ pub async fn fetch_activities<'a>(
                 .staff_members
                 .map(vec_into)
                 .unwrap_or_default(),
-            student_groups: HashSet::from_iter(
-                parsed_activity.student_groups.into_iter().flatten(),
-            ),
+            student_groups: parsed_activity.student_groups.unwrap_or_default(),
             rooms: parsed_activity.rooms.map(vec_into).unwrap_or_default(),
         };
 
