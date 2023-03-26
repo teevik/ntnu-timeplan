@@ -12,21 +12,31 @@ import "./App.scss";
 import useSWR, { preload } from "swr";
 import { SemestersWithCurrent } from "../../shared/bindings/SemestersWithCurrent";
 import { Course } from "../../shared/bindings/Course";
-import {
-  Button,
-  Combobox,
-  ComboboxItem,
-  ComboboxPopover,
-  useComboboxState,
-  FormSubmit,
-  FormInput,
-  Select,
-  useSelectState,
-  SelectPopover,
-  SelectItem,
-} from "ariakit";
-import { OrderedMap } from "immutable";
+import Immutable, { OrderedMap } from "immutable";
 import { Activity } from "../../shared/bindings/Activity";
+import {
+  Autocomplete,
+  Card,
+  CardContent,
+  CardHeader,
+  Checkbox,
+  Container,
+  Divider,
+  FormControlLabel,
+  Icon,
+  IconButton,
+  InputLabel,
+  Link,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import Grid from "@mui/material/Unstable_Grid2";
+import ClearIcon from "@mui/icons-material/Clear";
+import { CalendarQuery } from "../../shared/bindings/CalendarQuery";
 
 const baseUrl = "http://localhost:3000";
 
@@ -34,24 +44,81 @@ const fetcher = <T,>(url: string) =>
   fetch(baseUrl + url).then((res) => res.json() as T);
 
 const useFetch = <T,>(url: string) =>
-  useSWR(url, fetcher<T>, { suspense: true }).data;
+  useSWR(url, fetcher<T>, {
+    suspense: true,
+    revalidateIfStale: false,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  }).data;
 
 preload("/semesters", fetcher);
 preload("/courses", fetcher);
 
-interface SelectedSemesterProps {
-  courseCode: string;
-  courseTerm: number;
-  semester: string;
+function formatStudentGroup(studentGroup: string) {
+  studentGroup = studentGroup.replaceAll("_", " ");
+  studentGroup =
+    studentGroup[0].toUpperCase() + studentGroup.slice(1).toLowerCase();
+
+  return studentGroup;
 }
 
-function SelectedSemester(props: SelectedSemesterProps) {
-  const { courseCode, courseTerm, semester } = props;
+interface TermSelectorProps {
+  term: number;
+  amountOfTerms: number;
+  setTerm: (newTerm: number) => void;
+}
+
+function TermSelector(props: TermSelectorProps) {
+  const { term, amountOfTerms, setTerm } = props;
+
+  if (amountOfTerms == 1) return null;
+
+  return (
+    <>
+      <Divider />
+
+      <CardContent>
+        <TextField
+          select
+          label="Term"
+          value={term}
+          onChange={(e) => setTerm(parseInt(e.target.value))}
+        >
+          {Array.from({ length: amountOfTerms }, (_, index) => index + 1).map(
+            (term) => (
+              <MenuItem key={term} value={term}>
+                Term {term}
+              </MenuItem>
+            )
+          )}
+        </TextField>
+      </CardContent>
+    </>
+  );
+}
+
+interface SelectStudentGroupsProps {
+  courseCode: string;
+  term: number;
+  semester: string;
+  enabledStudentGroups: Immutable.Set<string>;
+  toggleStudentGroup: (studentGroup: string) => void;
+}
+
+function SelectStudentGroups(props: SelectStudentGroupsProps) {
+  const {
+    courseCode,
+    term,
+    semester,
+    enabledStudentGroups,
+    toggleStudentGroup,
+  } = props;
+
   let activities = useFetch<Activity[]>(
-    `/activities?courseCode=${courseCode}&courseTerm=${courseTerm}&semester=${semester}`
+    `/activities?courseCode=${courseCode}&courseTerm=${term}&semester=${semester}`
   );
 
-  const pog = useMemo(() => {
+  const allStudentGroups = useMemo(() => {
     let allStudentGroups = new Set<string>();
 
     for (const activity of activities) {
@@ -63,17 +130,81 @@ function SelectedSemester(props: SelectedSemesterProps) {
     return allStudentGroups;
   }, [activities]);
 
+  if (allStudentGroups.size == 0) return null;
+
   return (
-    <div>
-      {Array.from(pog.values()).map((pog) => (
-        <div key={pog}>
-          <label>
-            <input type="checkbox"></input>
-            {pog}
-          </label>
-        </div>
-      ))}
-    </div>
+    <>
+      <Divider />
+      <CardContent>
+        <Typography variant="h5">Student groups</Typography>
+        {Array.from(allStudentGroups.values()).map((studentGroup) => (
+          <Stack key={studentGroup}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={enabledStudentGroups.contains(studentGroup)}
+                  onClick={() => toggleStudentGroup(studentGroup)}
+                />
+              }
+              label={formatStudentGroup(studentGroup)}
+            />
+          </Stack>
+        ))}
+      </CardContent>
+    </>
+  );
+}
+
+interface CourseCardProps {
+  courseCode: string;
+  term: number;
+  setTerm: (newTerm: number) => void;
+  semester: string;
+  course: Course;
+  onRemove: () => void;
+  enabledStudentGroups: Immutable.Set<string>;
+  toggleStudentGroup: (studentGroup: string) => void;
+}
+
+function CourseCard(props: CourseCardProps) {
+  const {
+    courseCode,
+    term,
+    setTerm,
+    semester,
+    course,
+    enabledStudentGroups,
+    toggleStudentGroup,
+  } = props;
+
+  return (
+    <Card key={courseCode}>
+      <CardHeader
+        title={course.name}
+        subheader={courseCode}
+        action={
+          <IconButton aria-label="Remove" onClick={props.onRemove}>
+            <ClearIcon />
+          </IconButton>
+        }
+      />
+
+      <TermSelector
+        term={term}
+        setTerm={setTerm}
+        amountOfTerms={course.amountOfTerms}
+      />
+
+      <Suspense fallback={null}>
+        <SelectStudentGroups
+          courseCode={courseCode}
+          term={term}
+          semester={semester}
+          enabledStudentGroups={enabledStudentGroups}
+          toggleStudentGroup={toggleStudentGroup}
+        />
+      </Suspense>
+    </Card>
   );
 }
 
@@ -81,163 +212,160 @@ function App() {
   const semesters = useFetch<SemestersWithCurrent>("/semesters");
   const courses = useFetch<Record<string, Course>>("/courses");
 
-  interface SelectedCourse {
+  const semesterCodes = useMemo(
+    () => Object.keys(semesters.semesters).sort(),
+    [semesters]
+  );
+
+  const courseCodes = useMemo(() => Object.keys(courses), [courses]);
+
+  interface SelectedCourseState {
     term: number;
+    enabledStudentGroups: Immutable.Set<string>;
   }
 
   const [selectedCourses, setSelectedCourses] = useState(() =>
-    OrderedMap<string, SelectedCourse>()
+    OrderedMap<string, SelectedCourseState>()
   );
 
-  const courseSearch = useComboboxState({
-    gutter: 4,
-    sameWidth: true,
-    virtualFocus: true,
-  });
-
-  const searchQuery = courseSearch.value;
+  const [courseSearch, setCourseSearch] = useState("");
 
   const searchedCourses = useMemo(() => {
     return Object.entries(courses)
       .filter(
         ([courseCode, course]) =>
-          courseCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.name.toLowerCase().includes(searchQuery.toLowerCase())
+          courseCode.toLowerCase().includes(courseSearch.toLowerCase()) ||
+          course.name.toLowerCase().includes(courseSearch.toLowerCase())
       )
-      .slice(0, 10);
-  }, [searchQuery, courses]);
+      .slice(0, 50)
+      .map(([courseCode, course]) => courseCode);
+  }, [courseSearch, courses]);
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const [selectedSemester, setSelectedSemester] = useState(
+    semesters.currentSemester
+  );
 
-    // const valueToAdd = courseSearch.value;
-    const valueToAdd = searchedCourses[0]?.[0];
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
 
-    if (valueToAdd !== undefined) {
-      setSelectedCourses((pog) =>
-        pog.set(valueToAdd, {
-          term: 1,
-        })
-      );
+  const queries: CalendarQuery[] = [];
+  for (const [courseCode, selectedCourse] of selectedCourses) {
+    queries.push({
+      identifier: {
+        courseCode,
+        semester: selectedSemester,
+        courseTerm: selectedCourse.term,
+      },
+      studentGroups: Array.from(selectedCourse.enabledStudentGroups.values()),
+    });
+  }
 
-      courseSearch.setValue("");
-    }
-  };
-
-  const semesterSelectState = useSelectState({
-    defaultValue: semesters.currentSemester,
-  });
+  const url = `${baseUrl}/calendar.ics?queries=${JSON.stringify(queries)}`;
 
   return (
     <div className="App">
       <div className="wrapper">
-        <form onSubmit={onSubmit}>
-          <label className="label">
-            Your favorite fruit
-            <Combobox
-              style={{ width: 200 }}
-              state={courseSearch}
-              placeholder="e.g., Apple"
-              className="combobox"
-            />
-          </label>
-          <ComboboxPopover state={courseSearch} className="popover">
-            {searchedCourses.map(([courseCode, course]) => (
-              <ComboboxItem
-                key={courseCode}
-                className="combobox-item"
-                value={courseCode}
-                style={{ backgroundColor: "hotpink" }}
-              >
-                <p>{courseCode}</p>
-                <p>{course.name}</p>
-              </ComboboxItem>
-            ))}
-          </ComboboxPopover>
-          <FormSubmit>Pog</FormSubmit>
-        </form>
-
-        <Select state={semesterSelectState}></Select>
-        <SelectPopover state={semesterSelectState}>
-          {Object.entries(semesters.semesters).map(([pog, semester]) => (
-            <SelectItem
-              key={pog}
-              value={pog}
-              style={{ backgroundColor: "#2f2f2f" }}
-            >
-              {semester.name}
-            </SelectItem>
-          ))}
-        </SelectPopover>
-
-        {[...selectedCourses.entries()].map(([courseCode, course]) => {
-          const amountOfTerms = courses[courseCode].amountOfTerms;
-
-          const pog =
-            amountOfTerms > 1 ? (
-              <>
-                <p>Term:</p>
-                <p>{course.term}</p>
-                <Button
-                  onClick={() => {
-                    if (course.term >= amountOfTerms) return;
-
+        <Container>
+          <Grid container spacing={2} mt={2}>
+            <Grid xs={7} md={8} lg={10}>
+              <Autocomplete
+                fullWidth
+                options={searchedCourses}
+                renderInput={(params) => (
+                  <TextField {...params} label="Add course" />
+                )}
+                inputValue={courseSearch}
+                onInputChange={(_, newCourseSearch) =>
+                  setCourseSearch(newCourseSearch)
+                }
+                value={selectedCourse}
+                onChange={(_, courseCode) => {
+                  if (courseCode !== null) {
                     setSelectedCourses((pog) =>
-                      pog.update(courseCode, (map) => ({
-                        ...map!,
-                        term: map!.term + 1,
-                      }))
+                      pog.set(courseCode, {
+                        term: 1,
+                        enabledStudentGroups: Immutable.Set(),
+                      })
                     );
-                  }}
-                >
-                  +
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (course.term <= 1) return;
-                    setSelectedCourses((pog) =>
-                      pog.update(courseCode, (map) => ({
-                        ...map!,
-                        term: map!.term - 1,
-                      }))
-                    );
-                  }}
-                >
-                  -
-                </Button>
-              </>
-            ) : null;
 
-          return (
-            <div
-              key={courseCode}
-              style={{
-                background: "#2f2f2f",
-              }}
-            >
-              <p key={courseCode}>{courseCode}</p>
-              <Button
-                onClick={() => {
-                  setSelectedCourses((selectedCourses) =>
-                    selectedCourses.remove(courseCode)
-                  );
+                    setSelectedCourse(null);
+                    setCourseSearch("");
+                  }
                 }}
+              />
+            </Grid>
+
+            <Grid xs={5} md={4} lg={2}>
+              <TextField
+                fullWidth
+                select
+                label="Semester"
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
               >
-                x
-              </Button>
+                {semesterCodes.map((semesterCode) => (
+                  <MenuItem key={semesterCode} value={semesterCode}>
+                    {semesters.semesters[semesterCode].name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
 
-              <Suspense fallback={<div>Loading...</div>}>
-                <SelectedSemester
-                  courseCode={courseCode}
-                  courseTerm={course.term}
-                  semester={semesterSelectState.value}
-                ></SelectedSemester>
-              </Suspense>
+          <Grid container spacing={2} mt={2}>
+            {Array.from(selectedCourses.entries()).map(
+              ([courseCode, selectedCourse]) => (
+                <Grid key={courseCode} sm={12} md={6} lg={4}>
+                  <CourseCard
+                    courseCode={courseCode}
+                    term={selectedCourse.term}
+                    setTerm={(term) =>
+                      setSelectedCourses((selectedCourses) =>
+                        selectedCourses.set(courseCode, {
+                          enabledStudentGroups: Immutable.Set<string>(),
+                          term,
+                        })
+                      )
+                    }
+                    semester={selectedSemester}
+                    course={courses[courseCode]}
+                    onRemove={() =>
+                      setSelectedCourses((selectedCourses) =>
+                        selectedCourses.remove(courseCode)
+                      )
+                    }
+                    enabledStudentGroups={selectedCourse.enabledStudentGroups}
+                    toggleStudentGroup={(studentGroup) =>
+                      setSelectedCourses((selectedCourses) =>
+                        selectedCourses.update(
+                          courseCode,
+                          (selectedCourse) => ({
+                            ...selectedCourse!,
+                            enabledStudentGroups:
+                              selectedCourse!.enabledStudentGroups.includes(
+                                studentGroup
+                              )
+                                ? selectedCourse!.enabledStudentGroups.remove(
+                                    studentGroup
+                                  )
+                                : selectedCourse!.enabledStudentGroups.add(
+                                    studentGroup
+                                  ),
+                          })
+                        )
+                      )
+                    }
+                  />
+                </Grid>
+              )
+            )}
+          </Grid>
 
-              {pog}
-            </div>
-          );
-        })}
+          <Paper sx={{ padding: 2, mt: 2 }}>
+            <Link href={url} target="_blank">
+              {url}
+            </Link>
+          </Paper>
+        </Container>
       </div>
     </div>
   );

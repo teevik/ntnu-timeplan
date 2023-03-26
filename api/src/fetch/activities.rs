@@ -31,7 +31,8 @@ pub async fn fetch_activities<'a>(
     let document = Html::parse_document(&html);
 
     let selector = Selector::parse("script#data-js").unwrap();
-    let data = document.select(&selector).next().unwrap().inner_html();
+    let Some(element) = document.select(&selector).next() else {return Ok(Vec::new())};
+    let data = element.inner_html();
 
     #[derive(Debug, Deserialize)]
     struct ParsedRoom {
@@ -100,7 +101,7 @@ pub async fn fetch_activities<'a>(
         pub staff_members: Option<Vec<ParsedStaffMember>>,
 
         #[serde(rename = "studentgroups")]
-        pub student_groups: Vec<String>,
+        pub student_groups: Option<Vec<String>>,
 
         #[serde(rename = "room")]
         pub rooms: Option<Vec<ParsedRoom>>,
@@ -131,7 +132,9 @@ pub async fn fetch_activities<'a>(
                 .staff_members
                 .map(vec_into)
                 .unwrap_or_default(),
-            student_groups: HashSet::from_iter(parsed_activity.student_groups),
+            student_groups: HashSet::from_iter(
+                parsed_activity.student_groups.into_iter().flatten(),
+            ),
             rooms: parsed_activity.rooms.map(vec_into).unwrap_or_default(),
         };
 

@@ -6,7 +6,7 @@ use futures::future::try_join_all;
 use futures::TryFutureExt;
 use icalendar::{Calendar, Component, Event, EventLike};
 use itertools::Itertools;
-use ntnu_timeplan_shared::{Activity, CalendarQueries, Room};
+use ntnu_timeplan_shared::{Activity, CalendarQuery, Room};
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -58,7 +58,7 @@ pub async fn calendar_handler(
     handler_query: Query<HandlerQuery>,
     state: State<AppState>,
 ) -> Result<impl IntoResponse, AppError> {
-    let calendar_queries = CalendarQueries::from_query_string(&handler_query.queries)?;
+    let calendar_queries = serde_json::from_str::<Vec<CalendarQuery>>(&handler_query.queries)?;
 
     let activities_cache = &state.activities_cache;
 
@@ -67,7 +67,7 @@ pub async fn calendar_handler(
         student_groups: HashSet<String>,
     }
 
-    let activities = calendar_queries.queries.into_iter().map(|query| {
+    let activities = calendar_queries.into_iter().map(|query| {
         activities_cache
             .get_or_fetch(query.identifier)
             .map_ok(|activities| ActivitiesWithStudentGroups {

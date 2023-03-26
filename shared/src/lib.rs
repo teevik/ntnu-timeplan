@@ -89,20 +89,3 @@ pub struct CalendarQuery {
     pub identifier: CourseIdentifier,
     pub student_groups: HashSet<String>,
 }
-
-#[derive(TS, Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct CalendarQueries {
-    pub queries: Vec<CalendarQuery>,
-}
-
-impl CalendarQueries {
-    pub fn to_query_string(&self) -> serde_json::Result<String> {
-        serde_json::to_string(self)
-    }
-
-    pub fn from_query_string(string: &str) -> serde_json::Result<Self> {
-        serde_json::from_str(string)
-    }
-}
