@@ -1,6 +1,3 @@
-#![feature(default_free_fn)]
-#![feature(async_closure)]
-
 use crate::caching::activities_cache::ActivitiesCache;
 use crate::caching::courses_cache::CoursesCache;
 use crate::caching::semesters_cache::SemestersCache;
