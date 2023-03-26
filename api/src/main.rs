@@ -25,6 +25,7 @@ mod app_error;
 mod caching;
 mod fetch;
 mod handlers;
+mod shared_types;
 
 #[derive(Clone)]
 pub struct AppState {

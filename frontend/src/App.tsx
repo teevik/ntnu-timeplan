@@ -1,42 +1,30 @@
-import {
-  FormEvent,
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import { Suspense, useMemo, useState } from "react";
 import "./App.scss";
 import useSWR, { preload } from "swr";
-import { SemestersWithCurrent } from "../../shared/bindings/SemestersWithCurrent";
-import { Course } from "../../shared/bindings/Course";
 import Immutable, { OrderedMap } from "immutable";
-import { Activity } from "../../shared/bindings/Activity";
-import {
-  Autocomplete,
-  Card,
-  CardContent,
-  CardHeader,
-  Checkbox,
-  Container,
-  Divider,
-  FormControlLabel,
-  Icon,
-  IconButton,
-  InputLabel,
-  Link,
-  MenuItem,
-  Paper,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { SemestersWithCurrent } from "../../api/bindings/SemestersWithCurrent";
+import { Course } from "../../api/bindings/Course";
+import { Activity } from "../../api/bindings/Activity";
+import { CalendarQuery } from "../../api/bindings/CalendarQuery";
 import Grid from "@mui/material/Unstable_Grid2";
 import ClearIcon from "@mui/icons-material/Clear";
-import { CalendarQuery } from "../../shared/bindings/CalendarQuery";
+import {
+  Divider,
+  CardContent,
+  TextField,
+  MenuItem,
+  Typography,
+  FormControlLabel,
+  Checkbox,
+  Card,
+  CardHeader,
+  IconButton,
+  Container,
+  Autocomplete,
+  Paper,
+  Link,
+  Stack,
+} from "@mui/material";
 
 const baseUrl = "http://localhost:3000";
 
