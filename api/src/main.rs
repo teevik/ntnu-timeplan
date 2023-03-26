@@ -130,7 +130,7 @@ async fn main() -> color_eyre::Result<()> {
         .layer(governor_layer)
         .layer(CorsLayer::permissive());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("listening on http://{}", addr);
 
     axum::Server::bind(&addr)

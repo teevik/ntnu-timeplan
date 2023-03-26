@@ -1,5 +1,4 @@
 import { Suspense, useMemo, useState } from "react";
-import "./App.scss";
 import useSWR, { preload } from "swr";
 import Immutable, { OrderedMap } from "immutable";
 import { SemestersWithCurrent } from "../../api/bindings/SemestersWithCurrent";
@@ -26,13 +25,11 @@ import {
   Stack,
 } from "@mui/material";
 
-const baseUrl = "http://localhost:3000";
+// const baseUrl = "http://localhost:3000";
+const baseUrl = "https://ntnu-timeplan-api.fly.dev";
 
 const getFetcher = <T,>(url: string) =>
   fetch(baseUrl + url).then((res) => res.json() as T);
-
-// const postFetcher = <T,>([url, body]: [string, BodyInit]) =>
-//   fetch(baseUrl + url, { method: "POST", body }).then((res) => res.json() as T);
 
 const swrOptions = {
   suspense: true,
@@ -222,7 +219,47 @@ function CourseCard(props: CourseCardProps) {
   );
 }
 
-function App() {
+interface SelectedCourseState {
+  term: number;
+  enabledStudentGroups: Immutable.Set<string>;
+}
+
+interface ShowCalendarUrlProps {
+  semester: string;
+  selectedCourses: Immutable.OrderedMap<string, SelectedCourseState>;
+}
+
+function ShowCalendarUrl(props: ShowCalendarUrlProps) {
+  const { semester, selectedCourses } = props;
+
+  const queries = useMemo(() => {
+    const queries: CalendarQuery[] = [];
+    for (const [courseCode, selectedCourse] of selectedCourses) {
+      queries.push({
+        identifier: {
+          courseCode,
+          semester,
+          courseTerm: selectedCourse.term,
+        },
+        studentGroups: Array.from(selectedCourse.enabledStudentGroups.values()),
+      });
+    }
+
+    return queries;
+  }, [selectedCourses]);
+
+  const encodedQuery = useEncodeCalendarQuery(queries);
+
+  const url = `${baseUrl}/calendar.ics?query=${encodedQuery}`;
+
+  return (
+    <Link href={url} target="_blank" sx={{ wordBreak: "break-all" }}>
+      {url}
+    </Link>
+  );
+}
+
+export function App() {
   const semesters = useFetch<SemestersWithCurrent>("/semesters");
   const courses = useFetch<Record<string, Course>>("/courses");
 
@@ -230,13 +267,6 @@ function App() {
     () => Object.keys(semesters.semesters).sort(),
     [semesters]
   );
-
-  const courseCodes = useMemo(() => Object.keys(courses), [courses]);
-
-  interface SelectedCourseState {
-    term: number;
-    enabledStudentGroups: Immutable.Set<string>;
-  }
 
   const [selectedCourses, setSelectedCourses] = useState(() =>
     OrderedMap<string, SelectedCourseState>()
@@ -261,150 +291,108 @@ function App() {
 
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
 
-  interface ShowCalendarUrlProps {
-    selectedCourses: Immutable.OrderedMap<string, SelectedCourseState>;
-  }
-
-  function ShowCalendarUrl(props: ShowCalendarUrlProps) {
-    const { selectedCourses } = props;
-
-    const queries = useMemo(() => {
-      const queries: CalendarQuery[] = [];
-      for (const [courseCode, selectedCourse] of selectedCourses) {
-        queries.push({
-          identifier: {
-            courseCode,
-            semester: selectedSemester,
-            courseTerm: selectedCourse.term,
-          },
-          studentGroups: Array.from(
-            selectedCourse.enabledStudentGroups.values()
-          ),
-        });
-      }
-
-      return queries;
-    }, [selectedCourses]);
-
-    const encodedQuery = useEncodeCalendarQuery(queries);
-
-    const url = `${baseUrl}/calendar.ics?query=${encodedQuery}`;
-
-    return (
-      <Link href={url} target="_blank" sx={{ wordBreak: "break-all" }}>
-        {url}
-      </Link>
-    );
-  }
-
   return (
-    <div className="App">
-      <div className="wrapper">
-        <Container>
-          <Grid container spacing={2} mt={2}>
-            <Grid xs={7} md={8} lg={10}>
-              <Autocomplete
-                fullWidth
-                options={searchedCourses}
-                renderInput={(params) => (
-                  <TextField {...params} label="Add course" />
-                )}
-                inputValue={courseSearch}
-                onInputChange={(_, newCourseSearch) =>
-                  setCourseSearch(newCourseSearch)
-                }
-                value={selectedCourse}
-                onChange={(_, courseCode) => {
-                  if (courseCode !== null) {
-                    setSelectedCourses((pog) =>
-                      pog.set(courseCode, {
-                        term: 1,
-                        enabledStudentGroups: Immutable.Set(),
-                      })
-                    );
+    <Container>
+      <Grid container spacing={2} mt={2}>
+        <Grid xs={7} md={8} lg={10}>
+          <Autocomplete
+            fullWidth
+            options={searchedCourses}
+            renderInput={(params) => (
+              <TextField {...params} label="Add course" />
+            )}
+            inputValue={courseSearch}
+            onInputChange={(_, newCourseSearch) =>
+              setCourseSearch(newCourseSearch)
+            }
+            value={selectedCourse}
+            onChange={(_, courseCode) => {
+              if (courseCode !== null) {
+                setSelectedCourses((pog) =>
+                  pog.set(courseCode, {
+                    term: 1,
+                    enabledStudentGroups: Immutable.Set(),
+                  })
+                );
 
-                    setSelectedCourse(null);
-                    setCourseSearch("");
-                  }
-                }}
+                setSelectedCourse(null);
+                setCourseSearch("");
+              }
+            }}
+          />
+        </Grid>
+
+        <Grid xs={5} md={4} lg={2}>
+          <TextField
+            fullWidth
+            select
+            label="Semester"
+            value={selectedSemester}
+            onChange={(e) => setSelectedSemester(e.target.value)}
+          >
+            {semesterCodes.map((semesterCode) => (
+              <MenuItem key={semesterCode} value={semesterCode}>
+                {semesters.semesters[semesterCode].name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2} mt={2}>
+        {Array.from(selectedCourses.entries()).map(
+          ([courseCode, selectedCourse]) => (
+            <Grid key={courseCode} sm={12} md={6} lg={4}>
+              <CourseCard
+                courseCode={courseCode}
+                term={selectedCourse.term}
+                setTerm={(term) =>
+                  setSelectedCourses((selectedCourses) =>
+                    selectedCourses.set(courseCode, {
+                      enabledStudentGroups: Immutable.Set<string>(),
+                      term,
+                    })
+                  )
+                }
+                semester={selectedSemester}
+                course={courses[courseCode]}
+                onRemove={() =>
+                  setSelectedCourses((selectedCourses) =>
+                    selectedCourses.remove(courseCode)
+                  )
+                }
+                enabledStudentGroups={selectedCourse.enabledStudentGroups}
+                toggleStudentGroup={(studentGroup) =>
+                  setSelectedCourses((selectedCourses) =>
+                    selectedCourses.update(courseCode, (selectedCourse) => ({
+                      ...selectedCourse!,
+                      enabledStudentGroups:
+                        selectedCourse!.enabledStudentGroups.includes(
+                          studentGroup
+                        )
+                          ? selectedCourse!.enabledStudentGroups.remove(
+                              studentGroup
+                            )
+                          : selectedCourse!.enabledStudentGroups.add(
+                              studentGroup
+                            ),
+                    }))
+                  )
+                }
               />
             </Grid>
+          )
+        )}
+      </Grid>
 
-            <Grid xs={5} md={4} lg={2}>
-              <TextField
-                fullWidth
-                select
-                label="Semester"
-                value={selectedSemester}
-                onChange={(e) => setSelectedSemester(e.target.value)}
-              >
-                {semesterCodes.map((semesterCode) => (
-                  <MenuItem key={semesterCode} value={semesterCode}>
-                    {semesters.semesters[semesterCode].name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-          </Grid>
-
-          <Grid container spacing={2} mt={2}>
-            {Array.from(selectedCourses.entries()).map(
-              ([courseCode, selectedCourse]) => (
-                <Grid key={courseCode} sm={12} md={6} lg={4}>
-                  <CourseCard
-                    courseCode={courseCode}
-                    term={selectedCourse.term}
-                    setTerm={(term) =>
-                      setSelectedCourses((selectedCourses) =>
-                        selectedCourses.set(courseCode, {
-                          enabledStudentGroups: Immutable.Set<string>(),
-                          term,
-                        })
-                      )
-                    }
-                    semester={selectedSemester}
-                    course={courses[courseCode]}
-                    onRemove={() =>
-                      setSelectedCourses((selectedCourses) =>
-                        selectedCourses.remove(courseCode)
-                      )
-                    }
-                    enabledStudentGroups={selectedCourse.enabledStudentGroups}
-                    toggleStudentGroup={(studentGroup) =>
-                      setSelectedCourses((selectedCourses) =>
-                        selectedCourses.update(
-                          courseCode,
-                          (selectedCourse) => ({
-                            ...selectedCourse!,
-                            enabledStudentGroups:
-                              selectedCourse!.enabledStudentGroups.includes(
-                                studentGroup
-                              )
-                                ? selectedCourse!.enabledStudentGroups.remove(
-                                    studentGroup
-                                  )
-                                : selectedCourse!.enabledStudentGroups.add(
-                                    studentGroup
-                                  ),
-                          })
-                        )
-                      )
-                    }
-                  />
-                </Grid>
-              )
-            )}
-          </Grid>
-
-          <Paper sx={{ padding: 2, mt: 3 }}>
-            <Suspense fallback={"Loading"}>
-              <ShowCalendarUrl selectedCourses={selectedCourses} />
-            </Suspense>
-          </Paper>
-        </Container>
-      </div>
-    </div>
+      <Paper sx={{ padding: 2, mt: 3 }}>
+        <Suspense fallback={"Loading"}>
+          <ShowCalendarUrl
+            semester={selectedSemester}
+            selectedCourses={selectedCourses}
+          />
+        </Suspense>
+      </Paper>
+    </Container>
   );
 }
-
-export default App;
