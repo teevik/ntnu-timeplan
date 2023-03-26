@@ -1,5 +1,5 @@
 use crate::fetch::courses::fetch_courses;
-use ntnu_timeplan_shared::Course;
+use crate::shared_types::Course;
 use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -15,7 +15,7 @@ pub struct CoursesCache {
 }
 
 impl CoursesCache {
-    pub async fn new(client: Client) -> anyhow::Result<Self> {
+    pub async fn new(client: Client) -> color_eyre::Result<Self> {
         let courses = fetch_courses(&client).await?;
         let last_time_fetched = Instant::now();
 
@@ -26,7 +26,7 @@ impl CoursesCache {
         })
     }
 
-    pub async fn get_or_fetch(&self) -> anyhow::Result<Arc<HashMap<String, Course>>> {
+    pub async fn get_or_fetch(&self) -> color_eyre::Result<Arc<HashMap<String, Course>>> {
         const CACHE_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 7); // 1 week
 
         let last_time_fetched = *self.last_time_fetched.read().await;

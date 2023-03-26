@@ -1,10 +1,11 @@
-use anyhow::Context;
-use ntnu_timeplan_shared::Course;
+use color_eyre::eyre::eyre;
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-pub async fn fetch_courses(client: &Client) -> anyhow::Result<HashMap<String, Course>> {
+use crate::shared_types::Course;
+
+pub async fn fetch_courses(client: &Client) -> color_eyre::Result<HashMap<String, Course>> {
     let res = client
         .get("https://tp.uio.no/ntnu/timeplan/emner.php")
         .send()
@@ -15,10 +16,9 @@ pub async fn fetch_courses(client: &Client) -> anyhow::Result<HashMap<String, Co
     let courses = {
         let (_, courses) = page_html
             .split_once("var courses = ")
-            .context("Parsing error")
-            .unwrap();
+            .ok_or_else(|| eyre!("Parsing error"))?;
 
-        let end_index = courses.find(']').context("Parsing error")?;
+        let end_index = courses.find(']').ok_or_else(|| eyre!("Parsing error"))?;
 
         &courses[0..=end_index]
     };

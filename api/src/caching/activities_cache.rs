@@ -1,6 +1,8 @@
-use crate::fetch::activities::fetch_activities;
+use crate::{
+    fetch::activities::fetch_activities,
+    shared_types::{Activity, CourseIdentifier},
+};
 use mini_moka::sync::Cache;
-use ntnu_timeplan_shared::{Activity, CourseIdentifier};
 use reqwest::Client;
 use std::sync::Arc;
 use time::ext::NumericalStdDuration;
@@ -24,7 +26,7 @@ impl ActivitiesCache {
     pub async fn get_or_fetch(
         &self,
         course_identifier: CourseIdentifier,
-    ) -> anyhow::Result<Arc<Vec<Activity>>> {
+    ) -> color_eyre::Result<Arc<Vec<Activity>>> {
         if let Some(cache_result) = self.cache.get(&course_identifier) {
             return Ok(cache_result);
         }

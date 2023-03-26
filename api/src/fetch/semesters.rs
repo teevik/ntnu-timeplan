@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-
-use anyhow::Context;
-use ntnu_timeplan_shared::{Semester, SemestersWithCurrent};
+use color_eyre::eyre::eyre;
 use reqwest::Client;
 use scraper::{Html, Selector};
+use std::collections::HashMap;
 
-pub async fn fetch_semesters(client: &Client) -> anyhow::Result<SemestersWithCurrent> {
+use crate::shared_types::{Semester, SemestersWithCurrent};
+
+pub async fn fetch_semesters(client: &Client) -> color_eyre::Result<SemestersWithCurrent> {
     let response = client
         .get("https://tp.educloud.no/ntnu/timeplan/timeplan.php?type=courseact")
         .send()
@@ -23,8 +23,14 @@ pub async fn fetch_semesters(client: &Client) -> anyhow::Result<SemestersWithCur
         let mut semesters = HashMap::<String, Semester>::new();
 
         for element in elements {
-            let semester_code = element.value().attr("value").context("Parsing error")?;
-            let semester_name = element.text().next().context("Parsing error")?;
+            let semester_code = element
+                .value()
+                .attr("value")
+                .ok_or_else(|| eyre!("Parsing error"))?;
+            let semester_name = element
+                .text()
+                .next()
+                .ok_or_else(|| eyre!("Parsing error"))?;
 
             if semester_code == "showall" {
                 continue;
@@ -43,7 +49,7 @@ pub async fn fetch_semesters(client: &Client) -> anyhow::Result<SemestersWithCur
             semesters.insert(semester_code.to_owned(), semester);
         }
 
-        let current_semester = current_semester.context("Parsing error")?;
+        let current_semester = current_semester.ok_or_else(|| eyre!("Parsing error"))?;
 
         SemestersWithCurrent {
             semesters,

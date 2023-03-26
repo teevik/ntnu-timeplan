@@ -1,9 +1,9 @@
 use crate::app_error::AppError;
+use crate::shared_types::CourseIdentifier;
 use crate::AppState;
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use axum::Json;
-use ntnu_timeplan_shared::CourseIdentifier;
 
 pub async fn activities_handler(
     state: State<AppState>,

@@ -1,4 +1,5 @@
 use crate::app_error::AppError;
+use crate::shared_types::{Activity, CalendarQuery, Room};
 use crate::AppState;
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
@@ -6,7 +7,6 @@ use futures::future::try_join_all;
 use futures::TryFutureExt;
 use icalendar::{Calendar, Component, Event, EventLike};
 use itertools::Itertools;
-use ntnu_timeplan_shared::{Activity, CalendarQuery, Room};
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::sync::Arc;

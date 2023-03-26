@@ -34,9 +34,30 @@ pub struct AppState {
     pub semesters_cache: Arc<SemestersCache>,
 }
 
+fn install_tracing() {
+    use tracing_error::ErrorLayer;
+    use tracing_subscriber::prelude::*;
+    use tracing_subscriber::{fmt, EnvFilter};
+
+    let fmt_layer = fmt::layer().without_time();
+
+    let filter_layer = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("info"))
+        .unwrap();
+
+    tracing_subscriber::registry()
+        .with(filter_layer)
+        .with(fmt_layer)
+        .with(ErrorLayer::default())
+        .init();
+}
+
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+async fn main() -> color_eyre::Result<()> {
+    env::set_var("RUST_BACKTRACE", "1");
+
+    install_tracing();
+    color_eyre::install()?;
 
     let reqwest_client = reqwest::Client::new();
 
