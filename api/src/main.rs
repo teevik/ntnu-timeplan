@@ -99,7 +99,7 @@ async fn main() -> color_eyre::Result<()> {
 
     let port = match env::var("PORT") {
         Ok(val) => val.parse::<u16>()?,
-        Err(_) => 3000,
+        Err(_) => 8080,
     };
 
     let governor_conf = Box::new(
