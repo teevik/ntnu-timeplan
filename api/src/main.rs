@@ -17,6 +17,7 @@ use axum::{BoxError, Router};
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 use tower::ServiceBuilder;
 use tower_governor::errors::display_error;
 use tower_governor::governor::GovernorConfigBuilder;
@@ -101,7 +102,7 @@ async fn main() -> color_eyre::Result<()> {
 
     let governor_conf = Box::new(
         GovernorConfigBuilder::default()
-            .per_second(1)
+            .period(Duration::from_millis(500))
             .burst_size(10)
             .finish()
             .unwrap(),
