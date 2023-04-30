@@ -2,8 +2,9 @@ import { useMemo } from "react";
 import { SelectedCourseState, swrOptions } from "./App";
 import { CalendarQuery } from "../../api/bindings/CalendarQuery";
 import useSWR from "swr";
-import { Button, Link, Stack, Typography } from "@mui/material";
+import { Button, Stack, Typography } from "@mui/material";
 import { baseUrl } from "./useFetch";
+import { Apple, CalendarMonth } from "@mui/icons-material";
 
 const encodeCalendarQueryFetcher = ([url, body]: [string, BodyInit]) =>
   fetch(baseUrl + url, {
@@ -50,26 +51,37 @@ export function CalendarUrl(props: CalendarUrlProps) {
   }, [selectedCourses]);
 
   const encodedQuery = useEncodeCalendarQuery(queries);
-  const url = `${baseUrl}/calendar.ics?query=${encodedQuery}`;
-  // const previewUrl = `https://larrybolt.github.io/online-ics-feed-viewer/#feed=${url}f&cors=false`;
-  // const previewUrl = `https://larrybolt.github.io/online-ics-feed-viewer/#feed=${url}&cors=false&title=My%20Feed&hideinput=false`;
 
-  const query = new URLSearchParams({ feed: url, cors: "false" }).toString();
-  const previewUrl = `https://larrybolt.github.io/online-ics-feed-viewer/#${query}`;
+  const baseUrl = "https://ntnu-timeplan-api.fly.dev";
+  const webcalUrl = "webcal://ntnu-timeplan-api.fly.dev";
+
+  const calendarEndpoint = `/calendar.ics?query=${encodedQuery}`;
+
+  const icsFileUrl = baseUrl + calendarEndpoint;
+  const appleCalendarUrl = webcalUrl + calendarEndpoint;
 
   return (
-    <Stack alignItems="flex-start">
-      <Button href={previewUrl} target="_blank">
-        Preview
-      </Button>
+    <>
+      <Typography variant="h3" mt={6}>
+        Add to calendar
+      </Typography>
 
-      <Stack direction="row" gap={1}>
-        <Typography>URL:</Typography>
-
-        <Link href={url} target="_blank" sx={{ wordBreak: "break-all" }}>
-          {url}
-        </Link>
+      <Stack mt={2} direction="row" gap={2}>
+        <Button
+          variant="outlined"
+          startIcon={<Apple />}
+          href={appleCalendarUrl}
+        >
+          Apple calendar
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<CalendarMonth />}
+          href={icsFileUrl}
+        >
+          ICS url
+        </Button>
       </Stack>
-    </Stack>
+    </>
   );
 }

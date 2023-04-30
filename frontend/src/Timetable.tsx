@@ -1,7 +1,7 @@
 import { OrderedMap } from "immutable";
 import { SelectedCourseState } from "./App";
 import { useEffect, useMemo, useState } from "react";
-import { DateTime, WeekNumbers } from "luxon";
+import { DateTime } from "luxon";
 import {
   Card,
   CardContent,
@@ -16,7 +16,6 @@ import { useCounter } from "./useCounter";
 import { Activity } from "../../api/bindings/Activity";
 import { Course } from "../../api/bindings/Course";
 import { baseUrl } from "./useFetch";
-import { CourseIdentifier } from "../../api/bindings/CourseIdentifier";
 
 function compareLuxonDates(a: DateTime, b: DateTime) {
   return a.toMillis() - b.toMillis();
@@ -36,20 +35,26 @@ export function Timetable(props: TimetableProps) {
 
   useEffect(() => {
     const abortController = new AbortController();
-    const pog = Array.from(selectedCourses.entries()).map(
+    const activitiesPromise = Array.from(selectedCourses.entries()).map(
       ([courseCode, courseState]) => {
         const activities = fetch(
           `${baseUrl}/activities?courseCode=${courseCode}&courseTerm=${courseState.term}&semester=${semester}`,
           { signal: abortController.signal }
-        ).then((response) => response.json() as Promise<Activity[]>);
-
+        )
+          .then((response) => response.json() as Promise<Activity[]>)
+          .then((activities) =>
+            activities.filter((activity) =>
+              courseState.enabledStudentGroups.some((targetStudentGroup) =>
+                activity.studentGroups.includes(targetStudentGroup)
+              )
+            )
+          );
         return activities;
       }
     );
 
-    Promise.all(pog).then((pogger) => {
-      const ting = pogger.flat();
-      setActivities(ting);
+    Promise.all(activitiesPromise).then((activities) => {
+      setActivities(activities.flat());
     });
 
     return () => abortController.abort();
@@ -64,16 +69,68 @@ export function Timetable(props: TimetableProps) {
         )
         .sort((a, b) =>
           compareLuxonDates(
-            DateTime.fromISO(b.start),
-            DateTime.fromISO(a.start)
+            DateTime.fromISO(a.start),
+            DateTime.fromISO(b.start)
           )
         ),
     [activities, week.value]
   );
 
+  const renderBody = () => {
+    if (activities.length == 0) {
+      return <Typography>No courses selected</Typography>;
+    } else if (activitiesInWeek.length == 0) {
+      return <Typography>No activities in this week</Typography>;
+    } else {
+      return (
+        <Stack direction="column" gap={2}>
+          {activitiesInWeek.map((activity) => {
+            const start = DateTime.fromISO(activity.start);
+            const end = DateTime.fromISO(activity.end);
+
+            return (
+              <Card key={activity.id} sx={{ maxWidth: 400 }}>
+                <CardHeader
+                  title={activity.title}
+                  subheader={activity.courseCode}
+                />
+
+                <CardContent>
+                  <Typography>
+                    {activity.rooms[0]?.buildingName} -{" "}
+                    {activity.rooms[0]?.name}
+                  </Typography>
+
+                  <Typography>
+                    {start.weekdayLong}{" "}
+                    {start.toLocaleString({
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })}{" "}
+                    -{" "}
+                    {end.toLocaleString({
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })}
+                  </Typography>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Stack>
+      );
+    }
+  };
+
   return (
     <>
-      <Stack direction="row" alignItems="center" gap={1}>
+      <Typography variant="h3" mt={6}>
+        Timetable preview
+      </Typography>
+
+      <Stack direction="row" alignItems="center" gap={1} mt={1} mb={1}>
         <IconButton onClick={week.decrement}>
           <ChevronLeft />
         </IconButton>
@@ -83,18 +140,7 @@ export function Timetable(props: TimetableProps) {
         </IconButton>
       </Stack>
 
-      <Stack direction="column" gap={2}>
-        {activitiesInWeek.map((activity) => (
-          <Card sx={{ maxWidth: 400 }}>
-            <CardHeader
-              title={activity.title}
-              subheader={activity.courseCode}
-            />
-
-            <CardContent>{DateTime.fromISO(activity.start).to}</CardContent>
-          </Card>
-        ))}
-      </Stack>
+      {renderBody()}
     </>
   );
 }

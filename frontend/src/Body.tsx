@@ -13,13 +13,9 @@ import { Course } from "../../api/bindings/Course";
 import { SemestersWithCurrent } from "../../api/bindings/SemestersWithCurrent";
 import { CalendarUrl } from "./CalendarUrl";
 import { CourseCard } from "./CourseCard";
-import { preload } from "swr";
-import { fetcher, useFetch } from "./useFetch";
+import { useFetch } from "./useFetch";
 import Grid from "@mui/material/Unstable_Grid2";
 import { Timetable } from "./Timetable";
-
-preload("/semesters", fetcher);
-preload("/courses", fetcher);
 
 export function Body() {
   const semesters = useFetch<SemestersWithCurrent>("/semesters");
@@ -61,9 +57,11 @@ export function Body() {
             <Autocomplete
               fullWidth
               options={searchedCourses}
+              filterOptions={(options, state) => options}
               renderInput={(params) => (
                 <TextField {...params} label="Add course" />
               )}
+              getOptionLabel={(option) => `${option} - ${courses[option].name}`}
               inputValue={courseSearch}
               onInputChange={(_, newCourseSearch) =>
                 setCourseSearch(newCourseSearch)
@@ -148,14 +146,12 @@ export function Body() {
           )}
         </Grid>
 
-        <Paper sx={{ padding: 2, mt: 3 }}>
-          <Suspense fallback={<Typography>Loading...</Typography>}>
-            <CalendarUrl
-              semester={selectedSemester}
-              selectedCourses={selectedCourses}
-            />
-          </Suspense>
-        </Paper>
+        <Suspense fallback={<Typography>Loading...</Typography>}>
+          <CalendarUrl
+            semester={selectedSemester}
+            selectedCourses={selectedCourses}
+          />
+        </Suspense>
 
         <Timetable
           semester={selectedSemester}
