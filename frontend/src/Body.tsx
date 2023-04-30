@@ -16,6 +16,7 @@ import { CourseCard } from "./CourseCard";
 import { preload } from "swr";
 import { fetcher, useFetch } from "./useFetch";
 import Grid from "@mui/material/Unstable_Grid2";
+import { Timetable } from "./Timetable";
 
 preload("/semesters", fetcher);
 preload("/courses", fetcher);
@@ -155,6 +156,12 @@ export function Body() {
             />
           </Suspense>
         </Paper>
+
+        <Timetable
+          semester={selectedSemester}
+          selectedCourses={selectedCourses}
+          courses={courses}
+        />
       </Container>
     </>
   );

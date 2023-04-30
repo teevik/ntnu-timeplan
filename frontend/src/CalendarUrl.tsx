@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { SelectedCourseState, swrOptions } from "./App";
 import { CalendarQuery } from "../../api/bindings/CalendarQuery";
 import useSWR from "swr";
-import { Link } from "@mui/material";
+import { Button, Link, Stack, Typography } from "@mui/material";
 import { baseUrl } from "./useFetch";
 
 const encodeCalendarQueryFetcher = ([url, body]: [string, BodyInit]) =>
@@ -51,10 +51,25 @@ export function CalendarUrl(props: CalendarUrlProps) {
 
   const encodedQuery = useEncodeCalendarQuery(queries);
   const url = `${baseUrl}/calendar.ics?query=${encodedQuery}`;
+  // const previewUrl = `https://larrybolt.github.io/online-ics-feed-viewer/#feed=${url}f&cors=false`;
+  // const previewUrl = `https://larrybolt.github.io/online-ics-feed-viewer/#feed=${url}&cors=false&title=My%20Feed&hideinput=false`;
+
+  const query = new URLSearchParams({ feed: url, cors: "false" }).toString();
+  const previewUrl = `https://larrybolt.github.io/online-ics-feed-viewer/#${query}`;
 
   return (
-    <Link href={url} target="_blank" sx={{ wordBreak: "break-all" }}>
-      {url}
-    </Link>
+    <Stack alignItems="flex-start">
+      <Button href={previewUrl} target="_blank">
+        Preview
+      </Button>
+
+      <Stack direction="row" gap={1}>
+        <Typography>URL:</Typography>
+
+        <Link href={url} target="_blank" sx={{ wordBreak: "break-all" }}>
+          {url}
+        </Link>
+      </Stack>
+    </Stack>
   );
 }
