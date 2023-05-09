@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import { BrowserRouter } from "react-router-dom";
 
 const darkTheme = createTheme({
   palette: {
@@ -11,10 +12,12 @@ const darkTheme = createTheme({
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <ThemeProvider theme={darkTheme}>
-      <CssBaseline enableColorScheme />
+    <BrowserRouter>
+      <ThemeProvider theme={darkTheme}>
+        <CssBaseline enableColorScheme />
 
-      <App />
-    </ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );

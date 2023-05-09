@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import Immutable, { OrderedMap } from "immutable";
-import { useMemo, useState, Suspense } from "react";
+import { useMemo, useState, Suspense, useEffect } from "react";
 import { Course } from "../../api/bindings/Course";
 import { SemestersWithCurrent } from "../../api/bindings/SemestersWithCurrent";
 import { CalendarUrl } from "./CalendarUrl";
@@ -16,6 +16,7 @@ import { CourseCard } from "./CourseCard";
 import { useFetch } from "./useFetch";
 import Grid from "@mui/material/Unstable_Grid2";
 import { Timetable } from "./Timetable";
+import { useSearchParams } from "react-router-dom";
 
 export function Body() {
   const semesters = useFetch<SemestersWithCurrent>("/semesters");
@@ -26,9 +27,29 @@ export function Body() {
     [semesters]
   );
 
-  const [selectedCourses, setSelectedCourses] = useState(() =>
-    OrderedMap<string, SelectedCourseState>()
-  );
+  let [searchParams, setSearchParams] = useSearchParams();
+
+  const [selectedCourses, setSelectedCourses] = useState(() => {
+    const searchParamsData = Object.fromEntries(searchParams);
+
+    if (searchParamsData.query != undefined) {
+      const jsonData = JSON.parse(atob(searchParamsData.query));
+
+      for (const key in jsonData) {
+        jsonData[key].enabledStudentGroups = Immutable.Set(
+          jsonData[key].enabledStudentGroups
+        );
+      }
+
+      return OrderedMap<string, SelectedCourseState>(jsonData);
+    }
+
+    return OrderedMap<string, SelectedCourseState>();
+  });
+
+  useEffect(() => {
+    setSearchParams({ query: btoa(JSON.stringify(selectedCourses.toJSON())) });
+  }, [selectedCourses]);
 
   const [courseSearch, setCourseSearch] = useState("");
 
