@@ -20,13 +20,13 @@ impl ActivitiesCache {
             .time_to_live(2.std_hours())
             .build();
 
-        Self { cache, client }
+        Self { client, cache }
     }
 
     pub async fn get_or_fetch(
         &self,
         course_identifier: CourseIdentifier,
-    ) -> color_eyre::Result<Arc<Vec<Activity>>> {
+    ) -> anyhow::Result<Arc<Vec<Activity>>> {
         if let Some(cache_result) = self.cache.get(&course_identifier) {
             return Ok(cache_result);
         }

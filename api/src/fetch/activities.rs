@@ -8,7 +8,7 @@ use crate::shared_types::{Activity, CourseIdentifier, Room, StaffMember};
 pub async fn fetch_activities<'a>(
     course_identifier: &CourseIdentifier,
     client: &reqwest::Client,
-) -> color_eyre::Result<Vec<Activity>> {
+) -> anyhow::Result<Vec<Activity>> {
     let CourseIdentifier {
         course_code,
         course_term,
@@ -107,8 +107,8 @@ pub async fn fetch_activities<'a>(
         pub rooms: Option<Vec<ParsedRoom>>,
     }
 
-    fn convert_activity(parsed_activity: ParsedActivity) -> color_eyre::Result<Activity> {
-        fn parse_date_time(input: String) -> color_eyre::Result<DateTime<Utc>> {
+    fn convert_activity(parsed_activity: ParsedActivity) -> anyhow::Result<Activity> {
+        fn parse_date_time(input: String) -> anyhow::Result<DateTime<Utc>> {
             let date_time = DateTime::parse_from_str(&input, "%FT%T%#z")?.into();
 
             Ok(date_time)

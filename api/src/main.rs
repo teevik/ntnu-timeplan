@@ -1,37 +1,21 @@
-use crate::caching::activities_cache::ActivitiesCache;
-use crate::caching::courses_cache::CoursesCache;
-use crate::caching::semesters_cache::SemestersCache;
-use crate::handlers::activities::activities_handler;
-use crate::handlers::calendar::calendar_handler;
-use crate::handlers::courses::courses_handler;
-use crate::handlers::encode_calendar_query::encode_calendar_query_handler;
-use crate::handlers::semesters::semesters_handler;
-use crate::shared_types::{
-    Activity, CalendarQuery, Course, CourseIdentifier, Room, Semester, SemestersWithCurrent,
-    StaffMember,
-};
-use axum::error_handling::HandleErrorLayer;
-use axum::response::Redirect;
-use axum::routing::{get, post};
-use axum::{BoxError, Router};
+use crate::api::Api;
+use crate::calendar::calendar_handler::calendar_handler;
+use caching::activities_cache::ActivitiesCache;
+use caching::courses_cache::CoursesCache;
+use caching::semesters_cache::SemestersCache;
+use poem::listener::TcpListener;
+use poem::middleware::{Cors, Tracing};
+use poem::{get, EndpointExt, Route};
+use poem_openapi::OpenApiService;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Duration;
-use tower::ServiceBuilder;
-use tower_governor::errors::display_error;
-use tower_governor::governor::GovernorConfigBuilder;
-use tower_governor::GovernorLayer;
-use tower_http::cors::CorsLayer;
 use tracing::info;
-use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
 
-mod app_error;
+mod api;
 mod caching;
-mod calendar_queries;
+mod calendar;
 mod fetch;
-mod handlers;
 mod shared_types;
 
 #[derive(Clone)]
@@ -41,12 +25,26 @@ pub struct AppState {
     pub semesters_cache: Arc<SemestersCache>,
 }
 
+impl AppState {
+    pub async fn new(reqwest_client: &reqwest::Client) -> anyhow::Result<Self> {
+        let activities_cache: ActivitiesCache = ActivitiesCache::new(reqwest_client.clone());
+        let courses_cache = CoursesCache::new(reqwest_client.clone()).await?;
+        let semesters_cache = SemestersCache::new(reqwest_client.clone()).await?;
+
+        Ok(Self {
+            activities_cache: Arc::new(activities_cache),
+            courses_cache: Arc::new(courses_cache),
+            semesters_cache: Arc::new(semesters_cache),
+        })
+    }
+}
+
 fn install_tracing() {
     use tracing_error::ErrorLayer;
     use tracing_subscriber::prelude::*;
     use tracing_subscriber::{fmt, EnvFilter};
 
-    let fmt_layer = fmt::layer().without_time();
+    let fmt_layer = fmt::layer();
 
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("info"))
@@ -60,82 +58,34 @@ fn install_tracing() {
 }
 
 #[tokio::main]
-async fn main() -> color_eyre::Result<()> {
+async fn main() -> anyhow::Result<()> {
     env::set_var("RUST_BACKTRACE", "1");
     install_tracing();
-    color_eyre::install()?;
-
-    #[derive(OpenApi)]
-    #[openapi(
-        paths(
-            handlers::activities::activities_handler,
-            handlers::courses::courses_handler,
-            handlers::semesters::semesters_handler,
-            handlers::calendar::calendar_handler,
-            handlers::encode_calendar_query::encode_calendar_query_handler
-        ),
-        components(
-            schemas(Activity, CalendarQuery, Course, CourseIdentifier, Room, Semester, SemestersWithCurrent, StaffMember)
-        ),
-        tags(
-            (name = "ntnu-timeplan-api", description = "NTNU Timeplan API")
-        )
-    )]
-    struct ApiDoc;
 
     let reqwest_client = reqwest::Client::new();
 
-    let activities_cache = ActivitiesCache::new(reqwest_client.clone());
-    let courses_cache = CoursesCache::new(reqwest_client.clone()).await?;
-    let semesters_cache = SemestersCache::new(reqwest_client.clone()).await?;
-
-    let app_state = AppState {
-        activities_cache: Arc::new(activities_cache),
-        courses_cache: Arc::new(courses_cache),
-        semesters_cache: Arc::new(semesters_cache),
-    };
+    let app_state = AppState::new(&reqwest_client).await?;
 
     let port = match env::var("PORT") {
         Ok(val) => val.parse::<u16>()?,
         Err(_) => 8080,
     };
 
-    let governor_conf = Box::new(
-        GovernorConfigBuilder::default()
-            .period(Duration::from_millis(500))
-            .burst_size(10)
-            .finish()
-            .unwrap(),
-    );
+    let api_service = OpenApiService::new(Api, "NTNU Timeplan API", env!("CARGO_PKG_VERSION"))
+        .server(format!("http://0.0.0.0:{port}/api"));
+    let ui = api_service.openapi_explorer();
 
-    let governor_layer = ServiceBuilder::new()
-        .layer(HandleErrorLayer::new(|e: BoxError| async move {
-            display_error(e)
-        }))
-        .layer(GovernorLayer {
-            config: Box::leak(governor_conf),
-        });
+    let app = Route::new()
+        .nest("/", ui)
+        .nest("/api", api_service.with(Cors::new()).with(Tracing))
+        .at("/calendar.ics", get(calendar_handler).with(Tracing))
+        .data(app_state);
 
-    let router = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", ApiDoc::openapi()))
-        .route("/", get(|| async { Redirect::to("/swagger-ui") }))
-        .route("/semesters", get(semesters_handler))
-        .route("/courses", get(courses_handler))
-        .route("/activities", get(activities_handler))
-        .route(
-            "/encode-calendar-query",
-            post(encode_calendar_query_handler),
-        )
-        .route("/calendar.ics", get(calendar_handler))
-        .with_state(app_state)
-        .layer(governor_layer)
-        .layer(CorsLayer::permissive());
+    let socket_addr = SocketAddr::from(([0, 0, 0, 0], port));
+    info!("listening on http://{}", socket_addr);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    info!("listening on http://{}", addr);
-
-    axum::Server::bind(&addr)
-        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
+    poem::Server::new(TcpListener::bind(socket_addr))
+        .run(app)
         .await?;
 
     Ok(())
