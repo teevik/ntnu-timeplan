@@ -1,23 +1,17 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 
-const darkTheme = createTheme({
-  palette: {
-    mode: "dark",
-  },
-});
+const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ThemeProvider theme={darkTheme}>
-        <CssBaseline enableColorScheme />
-
+      <QueryClientProvider client={queryClient}>
         <App />
-      </ThemeProvider>
+      </QueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

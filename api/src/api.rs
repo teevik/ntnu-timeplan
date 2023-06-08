@@ -16,7 +16,7 @@ pub struct Api;
 
 #[OpenApi]
 impl Api {
-    #[oai(path = "/semesters", method = "get")]
+    #[oai(operation_id = "getSemesters", path = "/semesters", method = "get")]
     async fn semesters(
         &self,
         app_state: Data<&AppState>,
@@ -29,7 +29,7 @@ impl Api {
         Ok(Json(semesters))
     }
 
-    #[oai(path = "/courses", method = "get")]
+    #[oai(operation_id = "getCourses", path = "/courses", method = "get")]
     async fn courses(
         &self,
         app_state: Data<&AppState>,
@@ -41,12 +41,12 @@ impl Api {
         Ok(Json(courses))
     }
 
-    #[oai(path = "/activities", method = "get")]
+    #[oai(operation_id = "getActivities", path = "/activities", method = "get")]
     async fn activities(
         &self,
         app_state: Data<&AppState>,
-        course_code: Query<String>,
-        course_term: Query<i32>,
+        #[oai(name = "courseCode")] course_code: Query<String>,
+        #[oai(name = "courseTerm")] course_term: Query<i32>,
         semester: Query<String>,
     ) -> poem::Result<Json<Arc<Vec<Activity>>>> {
         let activities_cache = &app_state.activities_cache;
@@ -62,7 +62,11 @@ impl Api {
         Ok(Json(activities))
     }
 
-    #[oai(path = "/encode-calendar-query", method = "post")]
+    #[oai(
+        operation_id = "getEncodedCalendarQuery",
+        path = "/encode-calendar-query",
+        method = "post"
+    )]
     async fn encode_calendar_query(
         &self,
         calendar_queries: Json<Vec<CalendarQuery>>,

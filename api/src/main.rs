@@ -74,9 +74,11 @@ async fn main() -> anyhow::Result<()> {
     let api_service = OpenApiService::new(Api, "NTNU Timeplan API", env!("CARGO_PKG_VERSION"))
         .server(format!("http://0.0.0.0:{port}/api"));
     let ui = api_service.openapi_explorer();
+    let spec = api_service.spec();
 
     let app = Route::new()
         .nest("/", ui)
+        .at("/spec", poem::endpoint::make_sync(move |_| spec.clone()))
         .nest("/api", api_service.with(Cors::new()).with(Tracing))
         .at("/calendar.ics", get(calendar_handler).with(Tracing))
         .data(app_state);

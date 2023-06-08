@@ -1,27 +1,41 @@
-import Immutable from "immutable";
-import { TopBar } from "./TopBar";
-import { Body } from "./Body";
-import { Suspense } from "react";
+import { useState } from "react";
+import { Header } from "./Header";
+import { useGetActivities, useGetSemesters } from "./api/apiComponents";
+import { globalCss, css } from "./theme";
+import { useSearchParam } from "./hooks/useSearchParam";
 
-export const swrOptions = {
-  suspense: true,
-  revalidateIfStale: false,
-  revalidateOnFocus: false,
-  revalidateOnReconnect: false,
-} as const;
+const globalStyles = globalCss({
+  body: {
+    fontFamily: "$normal",
+    backgroundColor: "$background",
+    color: "$foreground",
 
-export interface SelectedCourseState {
-  term: number;
-  enabledStudentGroups: Immutable.Set<string>;
-}
+    margin: 0,
+  },
+
+  "*, ::before, ::after": {
+    boxSizing: "border-box",
+    outline: "none",
+  },
+});
+
+globalStyles();
 
 export function App() {
+  const semesters = useGetSemesters({}, { suspense: true }).data!;
+
+  const [selectedSemester, setSelectedSemester] = useSearchParam(
+    "semester",
+    semesters.currentSemester
+  );
+
   return (
-    <>
-      <TopBar />
-      <Suspense>
-        <Body />
-      </Suspense>
-    </>
+    <div>
+      <Header
+        semesters={semesters}
+        selectedSemester={selectedSemester}
+        setSelectedSemester={setSelectedSemester}
+      />
+    </div>
   );
 }
