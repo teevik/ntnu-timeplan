@@ -20,11 +20,9 @@ impl Api {
     async fn semesters(
         &self,
         app_state: Data<&AppState>,
-    ) -> poem::Result<Json<SemestersWithCurrent>> {
+    ) -> poem::Result<Json<Arc<SemestersWithCurrent>>> {
         let semester_cache = &app_state.semesters_cache;
-
         let semesters = semester_cache.get_or_fetch().await?;
-        let semesters = (*semesters).clone();
 
         Ok(Json(semesters))
     }
@@ -35,7 +33,6 @@ impl Api {
         app_state: Data<&AppState>,
     ) -> poem::Result<Json<Arc<HashMap<String, Course>>>> {
         let courses_cache = &app_state.courses_cache;
-
         let courses = courses_cache.get_or_fetch().await?;
 
         Ok(Json(courses))
