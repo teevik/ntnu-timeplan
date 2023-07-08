@@ -73,7 +73,7 @@ export const fetchGetCourses = (
   });
 
 export const useGetCourses = <TData = GetCoursesResponse>(
-  variables: GetCoursesVariables,
+  variables: GetCoursesVariables = {},
   options?: Omit<
     reactQuery.UseQueryOptions<GetCoursesResponse, GetCoursesError, TData>,
     "queryKey" | "queryFn"

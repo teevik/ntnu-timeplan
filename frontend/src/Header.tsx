@@ -150,6 +150,8 @@ namespace Styles {
       fontSize: "$2",
 
       borderRadius: "3px",
+      backgroundColor: "transparent",
+      transition: "background-color .1s ease-in-out",
 
       "&[data-highlighted]": {
         backgroundColor: "color-mix(in lch, $secondary, black 10%)",

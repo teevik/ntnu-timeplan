@@ -25,6 +25,7 @@ export const { styled, css, globalCss, theme } = createStitches({
       1: "12px",
       2: "15px",
       3: "18px",
+      4: "22px",
     },
 
     shadows: {
