@@ -1,11 +1,11 @@
-use anyhow::anyhow;
+use crate::error::{AppError, AppResult};
 use reqwest::Client;
 use scraper::{Html, Selector};
 use std::collections::HashMap;
 
 use crate::shared_types::{Semester, SemestersWithCurrent};
 
-pub async fn fetch_semesters(client: &Client) -> anyhow::Result<SemestersWithCurrent> {
+pub async fn fetch_semesters(client: &Client) -> AppResult<SemestersWithCurrent> {
     let response = client
         .get("https://tp.educloud.no/ntnu/timeplan/timeplan.php?type=courseact")
         .send()
@@ -26,11 +26,11 @@ pub async fn fetch_semesters(client: &Client) -> anyhow::Result<SemestersWithCur
             let semester_code = element
                 .value()
                 .attr("value")
-                .ok_or_else(|| anyhow!("Parsing error"))?;
+                .ok_or_else(|| AppError::ParsingError)?;
             let semester_name = element
                 .text()
                 .next()
-                .ok_or_else(|| anyhow!("Parsing error"))?;
+                .ok_or_else(|| AppError::ParsingError)?;
 
             if semester_code == "showall" {
                 continue;
@@ -49,7 +49,7 @@ pub async fn fetch_semesters(client: &Client) -> anyhow::Result<SemestersWithCur
             semesters.insert(semester_code.to_owned(), semester);
         }
 
-        let current_semester = current_semester.ok_or_else(|| anyhow!("Parsing error"))?;
+        let current_semester = current_semester.ok_or_else(|| AppError::ParsingError)?;
 
         SemestersWithCurrent {
             semesters,

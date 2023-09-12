@@ -1,11 +1,11 @@
-use anyhow::anyhow;
+use crate::error::{AppError, AppResult};
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;
 
 use crate::shared_types::Course;
 
-pub async fn fetch_courses(client: &Client) -> anyhow::Result<HashMap<String, Course>> {
+pub async fn fetch_courses(client: &Client) -> AppResult<HashMap<String, Course>> {
     let res = client
         .get("https://tp.uio.no/ntnu/timeplan/emner.php")
         .send()
@@ -16,9 +16,9 @@ pub async fn fetch_courses(client: &Client) -> anyhow::Result<HashMap<String, Co
     let courses = {
         let (_, courses) = page_html
             .split_once("var courses = ")
-            .ok_or_else(|| anyhow!("Parsing error"))?;
+            .ok_or_else(|| AppError::ParsingError)?;
 
-        let end_index = courses.find(']').ok_or_else(|| anyhow!("Parsing error"))?;
+        let end_index = courses.find(']').ok_or_else(|| AppError::ParsingError)?;
 
         &courses[0..=end_index]
     };
@@ -35,7 +35,8 @@ pub async fn fetch_courses(client: &Client) -> anyhow::Result<HashMap<String, Co
         pub amount_of_terms: i32,
     }
 
-    let fetched_courses = serde_json::from_str::<Vec<FetchedCourse>>(courses)?;
+    let fetched_courses =
+        serde_json::from_str::<Vec<FetchedCourse>>(courses).map_err(|_| AppError::ParsingError)?;
 
     let courses = fetched_courses
         .into_iter()

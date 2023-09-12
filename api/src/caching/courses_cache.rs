@@ -1,3 +1,4 @@
+use crate::error::AppResult;
 use crate::fetch::courses::fetch_courses;
 use crate::shared_types::Course;
 use reqwest::Client;
@@ -26,7 +27,7 @@ impl CoursesCache {
         })
     }
 
-    pub async fn get_or_fetch(&self) -> anyhow::Result<Arc<HashMap<String, Course>>> {
+    pub async fn get_or_fetch(&self) -> AppResult<Arc<HashMap<String, Course>>> {
         const CACHE_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 7); // 1 week
 
         let last_time_fetched = *self.last_time_fetched.read().await;

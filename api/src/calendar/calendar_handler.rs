@@ -1,14 +1,12 @@
+use crate::error::AppResult;
 use crate::{
     calendar::{activity_to_event::activity_to_event, encode_query::decode_calendar_query},
     shared_types::Activity,
     AppState,
 };
+use axum::extract::{Query, State};
 use futures_util::{future::try_join_all, TryFutureExt};
 use icalendar::Calendar;
-use poem::{
-    handler,
-    web::{Data, Query},
-};
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -17,13 +15,12 @@ pub struct HandlerQuery {
     query: String,
 }
 
-#[handler]
 pub async fn calendar_handler(
     query: Query<HandlerQuery>,
-    state: Data<&AppState>,
-) -> poem::Result<String> {
+    State(app_state): State<AppState>,
+) -> AppResult<String> {
     let calendar_queries = decode_calendar_query(&query.query)?;
-    let activities_cache = &state.activities_cache;
+    let activities_cache = &app_state.activities_cache;
 
     struct ActivitiesWithStudentGroups {
         activities: Arc<Vec<Activity>>,
