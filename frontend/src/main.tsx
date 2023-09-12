@@ -7,8 +7,12 @@ import { Procedures } from "../../api/bindings";
 import { QueryClient } from "@tanstack/react-query";
 import { rspc } from "./rspc";
 
+const endpoint = import.meta.env.PROD
+  ? "https://ntnu-timeplan-api.fly.dev/rspc"
+  : "http://0.0.0.0:8080/rspc";
+
 const client = createClient<Procedures>({
-  transport: new FetchTransport("http://0.0.0.0:8080/rspc"),
+  transport: new FetchTransport(endpoint),
 });
 
 const queryClient = new QueryClient();
