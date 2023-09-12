@@ -5,8 +5,8 @@ import {
 } from "@radix-ui/react-icons";
 import { css } from "./theme";
 import * as Select from "@radix-ui/react-select";
-import { SemestersWithCurrent } from "./api/apiSchemas";
 import { Label } from "@radix-ui/react-label";
+import { SemestersWithCurrent } from "../../api/bindings";
 
 interface HeaderProps {
   semesters: SemestersWithCurrent;
