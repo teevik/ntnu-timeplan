@@ -1,17 +1,7 @@
 use crate::calendar::encode_query::encode_calendar_query;
 use crate::shared_types::{CalendarQuery, CourseIdentifier};
 use crate::AppState;
-use rspc::internal::specta;
-use serde::Deserialize;
 use std::ops::Deref;
-
-#[derive(specta::Type, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ActivitiesQuery {
-    course_code: String,
-    course_term: i32,
-    semester: String,
-}
 
 pub fn rspc_router() -> rspc::Router<AppState> {
     let router = rspc::Router::<AppState>::new()
@@ -33,24 +23,15 @@ pub fn rspc_router() -> rspc::Router<AppState> {
             })
         })
         .query("activities", |t| {
-            t(async move |app_state: AppState, input: ActivitiesQuery| {
-                let ActivitiesQuery {
-                    course_code,
-                    course_term,
-                    semester,
-                } = input;
-                let activities_cache = &app_state.activities_cache;
+            t(
+                async move |app_state: AppState, course_identifier: CourseIdentifier| {
+                    let activities_cache = &app_state.activities_cache;
 
-                let activities = activities_cache
-                    .get_or_fetch(CourseIdentifier {
-                        course_code,
-                        course_term,
-                        semester,
-                    })
-                    .await?;
+                    let activities = activities_cache.get_or_fetch(course_identifier).await?;
 
-                Ok(activities.deref().clone())
-            })
+                    Ok(activities.deref().clone())
+                },
+            )
         })
         .query("encode-calendar-query", |t| {
             t(async move |_, input: Vec<CalendarQuery>| {

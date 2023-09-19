@@ -3,12 +3,13 @@ use itertools::Itertools;
 
 use crate::shared_types::{Activity, Room};
 
-pub fn activity_to_event(activity: &Activity) -> Event {
+pub fn activity_to_event(activity: &Activity, custom_name: &Option<String>) -> Event {
     let mut event = Event::new();
 
     event.uid(&activity.id);
 
-    event.summary(&format!("{} {}", activity.course_code, activity.title));
+    let name = custom_name.as_ref().unwrap_or(&activity.course_code);
+    event.summary(&format!("{} | {}", name, activity.title));
     event.starts(activity.start);
     event.ends(activity.end);
 

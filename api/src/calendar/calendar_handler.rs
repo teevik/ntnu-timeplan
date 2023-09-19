@@ -22,21 +22,24 @@ pub async fn calendar_handler(
     let calendar_queries = decode_calendar_query(&query.query)?;
     let activities_cache = &app_state.activities_cache;
 
-    struct ActivitiesWithStudentGroups {
+    #[derive(Debug)]
+    struct ActivitiesWithExtra {
         activities: Arc<Vec<Activity>>,
         student_groups: Vec<String>,
+        custom_name: Option<String>,
     }
 
     let activities = calendar_queries.into_iter().map(|query| {
         activities_cache
             .get_or_fetch(query.identifier)
-            .map_ok(|activities| ActivitiesWithStudentGroups {
+            .map_ok(|activities| ActivitiesWithExtra {
                 activities,
                 student_groups: query.student_groups,
+                custom_name: query.custom_name,
             })
     });
 
-    let all_activities_with_student_groups: Vec<ActivitiesWithStudentGroups> =
+    let all_activities_with_student_groups: Vec<ActivitiesWithExtra> =
         try_join_all(activities).await?;
 
     fn includes_target_group(activity: &Activity, target_student_groups: &[String]) -> bool {
@@ -46,14 +49,15 @@ pub async fn calendar_handler(
     }
 
     let events = all_activities_with_student_groups.iter().flat_map(
-        |ActivitiesWithStudentGroups {
+        |ActivitiesWithExtra {
              activities,
              student_groups,
+             custom_name,
          }| {
             activities
                 .iter()
                 .filter(move |activity| includes_target_group(activity, student_groups))
-                .map(activity_to_event)
+                .map(|activity| activity_to_event(activity, custom_name))
         },
     );
 

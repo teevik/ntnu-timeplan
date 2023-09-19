@@ -1,5 +1,3 @@
-#![feature(async_closure)]
-
 use axum::routing::get;
 use ntnu_timeplan_api::calendar::calendar_handler::calendar_handler;
 use ntnu_timeplan_api::router::rspc_router;
