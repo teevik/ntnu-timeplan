@@ -3,7 +3,6 @@ import { SelectedCourseState } from "./App";
 import { CourseCard } from "./CourseCard";
 import { Course } from "../../api/bindings";
 import { css } from "./theme";
-import { set } from "remeda";
 
 interface SelectedCoursesProps {
   courses: Record<string, Course>;
