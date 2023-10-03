@@ -2,7 +2,7 @@ FROM rustlang/rust:nightly-slim as builder
 WORKDIR /app
 COPY Cargo.toml /app/
 COPY src /app/src/
-RUN cargo build --release
+RUN cargo build --bin ntnu-timeplan-api --release
 
 FROM debian:bullseye-slim as runtime
 WORKDIR /app

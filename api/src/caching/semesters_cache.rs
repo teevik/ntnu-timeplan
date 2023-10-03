@@ -1,3 +1,4 @@
+use crate::error::AppResult;
 use crate::fetch::semesters::fetch_semesters;
 use crate::shared_types::SemestersWithCurrent;
 use reqwest::Client;
@@ -14,7 +15,7 @@ pub struct SemestersCache {
 }
 
 impl SemestersCache {
-    pub async fn new(client: Client) -> color_eyre::Result<Self> {
+    pub async fn new(client: Client) -> anyhow::Result<Self> {
         let fetched_semesters = fetch_semesters(&client).await?;
         let last_time_fetched = Instant::now();
 
@@ -25,7 +26,7 @@ impl SemestersCache {
         })
     }
 
-    pub async fn get_or_fetch(&self) -> color_eyre::Result<Arc<SemestersWithCurrent>> {
+    pub async fn get_or_fetch(&self) -> AppResult<Arc<SemestersWithCurrent>> {
         const CACHE_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 7); // 1 week
 
         let last_time_fetched = *self.last_time_fetched.read().await;

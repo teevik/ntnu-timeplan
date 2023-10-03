@@ -1,29 +1,25 @@
 use chrono::{DateTime, Utc};
+use rspc::internal::specta;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use ts_rs::TS;
-use utoipa::{IntoParams, ToSchema};
 
-#[derive(TS, ToSchema, Deserialize, Serialize, Debug, Clone)]
+#[derive(specta::Type, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[ts(export)]
 pub struct Room {
     pub name: String,
     pub building_name: String,
     pub url: String,
 }
 
-#[derive(TS, ToSchema, Deserialize, Serialize, Debug, Clone)]
+#[derive(specta::Type, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[ts(export)]
 pub struct StaffMember {
     pub first_name: String,
     pub last_name: String,
 }
 
-#[derive(TS, ToSchema, Deserialize, Serialize, Debug, Clone)]
+#[derive(specta::Type, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[ts(export)]
 pub struct Activity {
     pub id: String,
     pub course_code: String,
@@ -37,42 +33,44 @@ pub struct Activity {
     pub rooms: Vec<Room>,
 }
 
-#[derive(TS, ToSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(specta::Type, Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[ts(export)]
 pub struct Course {
     pub name: String,
     pub amount_of_terms: i32,
 }
 
-#[derive(TS, ToSchema, IntoParams, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(specta::Type, Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
-#[ts(export)]
 pub struct CourseIdentifier {
     pub course_code: String,
     pub course_term: i32,
     pub semester: String,
 }
 
-#[derive(TS, ToSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(specta::Type, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[ts(export)]
 pub struct Semester {
     pub name: String,
 }
-
-#[derive(TS, ToSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(specta::Type, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[ts(export)]
 pub struct SemestersWithCurrent {
     pub semesters: HashMap<String, Semester>,
     pub current_semester: String,
 }
 
-#[derive(TS, ToSchema, Serialize, Deserialize, Debug, Clone)]
+#[derive(specta::Type, Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
-#[ts(export)]
 pub struct CalendarQuery {
+    pub identifier: CourseIdentifier,
+    pub student_groups: Vec<String>,
+    pub custom_name: Option<String>
+}
+
+#[derive(specta::Type, Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct OldCalendarQuery {
     pub identifier: CourseIdentifier,
     pub student_groups: Vec<String>,
 }

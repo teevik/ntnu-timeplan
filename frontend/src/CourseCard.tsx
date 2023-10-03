@@ -1,21 +1,10 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  Checkbox,
-  Divider,
-  FormControlLabel,
-  IconButton,
-  MenuItem,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
 import { Suspense, useMemo } from "react";
-import { Activity } from "../../api/bindings/Activity";
-import { Course } from "../../api/bindings/Course";
-import ClearIcon from "@mui/icons-material/Clear";
-import { useFetch } from "./useFetch";
+import { CheckIcon, Cross1Icon } from "@radix-ui/react-icons";
+import { Label } from "@radix-ui/react-label";
+import { rspc } from "./rspc";
+import * as Checkbox from "@radix-ui/react-checkbox";
+import { Course } from "../../api/bindings";
+import { css } from "./theme";
 
 function formatStudentGroup(studentGroup: string) {
   studentGroup = studentGroup.replaceAll("_", " ");
@@ -38,48 +27,50 @@ function TermSelector(props: TermSelectorProps) {
 
   return (
     <>
-      <Divider />
+      <hr />
 
-      <CardContent>
-        <TextField
-          select
-          label="Term"
-          value={term}
-          onChange={(e) => setTerm(parseInt(e.target.value))}
-        >
-          {Array.from({ length: amountOfTerms }, (_, index) => index + 1).map(
-            (term) => (
-              <MenuItem key={term} value={term}>
-                Term {term}
-              </MenuItem>
-            )
-          )}
-        </TextField>
-      </CardContent>
+      <div>
+        <Label>
+          Term
+          <select
+            value={term}
+            onChange={(e) => setTerm(parseInt(e.target.value))}
+          >
+            {Array.from({ length: amountOfTerms }, (_, index) => index + 1).map(
+              (term) => (
+                <option key={term} value={term}>
+                  Term {term}
+                </option>
+              )
+            )}
+          </select>
+        </Label>
+      </div>
     </>
   );
 }
 
 interface SelectStudentGroupsProps {
   courseCode: string;
-  term: number;
+  courseTerm: number;
   semester: string;
-  enabledStudentGroups: Immutable.Set<string>;
+  enabledStudentGroups: string[];
   toggleStudentGroup: (studentGroup: string) => void;
 }
 
 function SelectStudentGroups(props: SelectStudentGroupsProps) {
   const {
     courseCode,
-    term,
+    courseTerm,
     semester,
     enabledStudentGroups,
     toggleStudentGroup,
   } = props;
 
-  let activities = useFetch<Activity[]>(
-    `/activities?courseCode=${courseCode}&courseTerm=${term}&semester=${semester}`
-  );
+  let activities = rspc.useQuery(
+    ["activities", { courseCode, courseTerm, semester }],
+    { suspense: true }
+  ).data!;
 
   const allStudentGroups = useMemo(() => {
     let allStudentGroups = new Set<string>();
@@ -97,23 +88,33 @@ function SelectStudentGroups(props: SelectStudentGroupsProps) {
 
   return (
     <>
-      <Divider />
-      <CardContent>
-        <Typography variant="h5">Student groups</Typography>
-        {Array.from(allStudentGroups.values()).map((studentGroup) => (
-          <Stack key={studentGroup}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={enabledStudentGroups.contains(studentGroup)}
+      <hr />
+
+      <div>
+        <p>Student groups</p>
+
+        <div className={Styles.StudentGroups.container()}>
+          {Array.from(allStudentGroups.values()).map((studentGroup) => (
+            <div key={studentGroup}>
+              <Label className={Styles.StudentGroups.inputGroup()}>
+                <Checkbox.Root
+                  className={Styles.StudentGroups.checkbox()}
+                  checked={enabledStudentGroups.includes(studentGroup)}
                   onClick={() => toggleStudentGroup(studentGroup)}
-                />
-              }
-              label={formatStudentGroup(studentGroup)}
-            />
-          </Stack>
-        ))}
-      </CardContent>
+                >
+                  <Checkbox.Indicator
+                    className={Styles.StudentGroups.indicator()}
+                  >
+                    <CheckIcon />
+                  </Checkbox.Indicator>
+                </Checkbox.Root>
+
+                {formatStudentGroup(studentGroup)}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
     </>
   );
 }
@@ -125,7 +126,7 @@ interface CourseCardProps {
   semester: string;
   course: Course;
   onRemove: () => void;
-  enabledStudentGroups: Immutable.Set<string>;
+  enabledStudentGroups: string[];
   toggleStudentGroup: (studentGroup: string) => void;
 }
 
@@ -141,16 +142,21 @@ export function CourseCard(props: CourseCardProps) {
   } = props;
 
   return (
-    <Card key={courseCode}>
-      <CardHeader
-        title={course.name}
-        subheader={courseCode}
-        action={
-          <IconButton aria-label="Remove" onClick={props.onRemove}>
-            <ClearIcon />
-          </IconButton>
-        }
-      />
+    <div key={courseCode} className={Styles.container()}>
+      <div className={Styles.header()}>
+        <div className={Styles.Names.container()}>
+          <span className={Styles.Names.name()}>{course.name}</span>
+          <span className={Styles.Names.courseCode()}>{courseCode}</span>
+        </div>
+
+        <button
+          className={Styles.removeButton()}
+          aria-label="Remove"
+          onClick={props.onRemove}
+        >
+          <Cross1Icon />
+        </button>
+      </div>
 
       <TermSelector
         term={term}
@@ -161,12 +167,95 @@ export function CourseCard(props: CourseCardProps) {
       <Suspense>
         <SelectStudentGroups
           courseCode={courseCode}
-          term={term}
+          courseTerm={term}
           semester={semester}
           enabledStudentGroups={enabledStudentGroups}
           toggleStudentGroup={toggleStudentGroup}
         />
       </Suspense>
-    </Card>
+    </div>
   );
+}
+
+namespace Styles {
+  export const container = css({
+    padding: "$3 $4",
+
+    backgroundColor: "color-mix(in lch, $background, white 5%)",
+  });
+
+  export const header = css({
+    display: "flex",
+    justifyContent: "space-between",
+  });
+
+  export namespace Names {
+    export const container = css({
+      display: "flex",
+      flexDirection: "column",
+    });
+
+    export const name = css({
+      fontSize: "$4",
+      fontWeight: 400,
+    });
+
+    export const courseCode = css({
+      fontSize: "$2",
+      fontWeight: 500,
+      opacity: 0.8,
+    });
+  }
+
+  export const removeButton = css({
+    padding: "$1",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+
+    "& > *": {
+      width: 32,
+      height: 32,
+      color: "$secondary",
+    },
+  });
+
+  export namespace StudentGroups {
+    export const container = css({
+      display: "flex",
+      flexDirection: "column",
+      gap: "$2",
+    });
+
+    export const inputGroup = css({
+      display: "flex",
+      gap: "$3",
+    });
+
+    export const checkbox = css({
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+
+      minWidth: 25,
+      minHeight: 25,
+
+      maxWidth: 25,
+      maxHeight: 25,
+
+      backgroundColor: "$foreground",
+      border: "none",
+
+      borderRadius: 4,
+
+      "& svg": {
+        width: 19,
+        height: 19,
+      },
+    });
+
+    export const indicator = css({
+      color: "black",
+    });
+  }
 }

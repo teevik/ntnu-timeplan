@@ -1,27 +1,98 @@
-import Immutable from "immutable";
-import { TopBar } from "./TopBar";
-import { Body } from "./Body";
-import { Suspense } from "react";
+import { Header } from "./Header";
+import { globalCss, css } from "./theme";
+import { useSearchParam } from "./hooks/useSearchParam";
+import { rspc } from "./rspc";
+import { useEffect, useState } from "react";
+import { SearchBar } from "./SearchBar";
+import { SelectedCourses } from "./SelectedCourses";
 
-export const swrOptions = {
-  suspense: true,
-  revalidateIfStale: false,
-  revalidateOnFocus: false,
-  revalidateOnReconnect: false,
-} as const;
+const globalStyles = globalCss({
+  body: {
+    fontFamily: "$normal",
+    backgroundColor: "$background",
+    color: "$foreground",
+
+    margin: 0,
+  },
+
+  "*, ::before, ::after": {
+    boxSizing: "border-box",
+    outline: "none",
+  },
+});
+
+globalStyles();
 
 export interface SelectedCourseState {
+  courseCode: string;
   term: number;
-  enabledStudentGroups: Immutable.Set<string>;
+  enabledStudentGroups: string[];
 }
 
 export function App() {
-  return (
-    <>
-      <TopBar />
-      <Suspense>
-        <Body />
-      </Suspense>
-    </>
+  const semesters = rspc.useQuery(["semesters"], {
+    suspense: true,
+  }).data!;
+
+  const courses = rspc.useQuery(["courses"], {
+    suspense: true,
+  }).data!;
+
+  // TODO refactor out to a single hook
+  let [searchParam, setSearchParam] = useSearchParam("courses", "");
+  const [selectedCourses, setSelectedCourses] = useState(() => {
+    if (searchParam.length != 0) {
+      try {
+        const jsonData = JSON.parse(atob(searchParam));
+
+        return jsonData as SelectedCourseState[];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    return [];
+  });
+  useEffect(() => {
+    setSearchParam(btoa(JSON.stringify(selectedCourses)));
+  }, [selectedCourses]);
+
+  const [selectedSemester, setSelectedSemester] = useSearchParam(
+    "semester",
+    semesters.currentSemester
   );
+
+  return (
+    <div>
+      <Header
+        semesters={semesters}
+        selectedSemester={selectedSemester}
+        setSelectedSemester={setSelectedSemester}
+      />
+
+      <main className={Styles.container()}>
+        <SearchBar
+          courses={courses}
+          selectedCourses={selectedCourses}
+          setSelectedCourses={setSelectedCourses}
+        />
+
+        <SelectedCourses
+          courses={courses}
+          selectedSemester={selectedSemester}
+          selectedCourses={selectedCourses}
+          setSelectedCourses={setSelectedCourses}
+        />
+      </main>
+    </div>
+  );
+}
+namespace Styles {
+  export const container = css({
+    display: "flex",
+    flexDirection: "column",
+    width: "min($maxWidth, 100vw)",
+    margin: "0 auto",
+    padding: "$4 $4",
+  });
 }

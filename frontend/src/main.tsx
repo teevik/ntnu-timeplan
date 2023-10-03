@@ -1,23 +1,28 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import { BrowserRouter } from "react-router-dom";
+import { FetchTransport, createClient } from "@rspc/client";
+import { Procedures } from "../../api/bindings";
+import { QueryClient } from "@tanstack/react-query";
+import { rspc } from "./rspc";
 
-const darkTheme = createTheme({
-  palette: {
-    mode: "dark",
-  },
+const endpoint = import.meta.env.PROD
+  ? "https://ntnu-timeplan-api.fly.dev/rspc"
+  : "http://0.0.0.0:8080/rspc";
+
+const client = createClient<Procedures>({
+  transport: new FetchTransport(endpoint),
 });
+
+const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ThemeProvider theme={darkTheme}>
-        <CssBaseline enableColorScheme />
-
+      <rspc.Provider client={client} queryClient={queryClient}>
         <App />
-      </ThemeProvider>
+      </rspc.Provider>
     </BrowserRouter>
   </React.StrictMode>
 );
