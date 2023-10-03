@@ -92,6 +92,9 @@ namespace Styles {
     display: "grid",
     alignItems: "stretch",
     gap: "$3",
-    gridTemplateColumns: "repeat(auto-fill, minmax(400px, 1fr))",
+    gridTemplateColumns: "1fr",
+    "@media (min-width: 840px)": {
+      gridTemplateColumns: "1fr 1fr",
+    },
   });
 }

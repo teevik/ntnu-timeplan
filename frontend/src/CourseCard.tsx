@@ -230,6 +230,7 @@ namespace Styles {
     export const inputGroup = css({
       display: "flex",
       gap: "$3",
+      cursor: "pointer",
     });
 
     export const checkbox = css({
