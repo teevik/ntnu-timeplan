@@ -3,6 +3,7 @@ import { SelectedCourseState } from "./App";
 import { CourseCard } from "./CourseCard";
 import { Course } from "../../api/bindings";
 import { css } from "./theme";
+import { set } from "remeda";
 
 interface SelectedCoursesProps {
   courses: Record<string, Course>;
@@ -30,11 +31,15 @@ export function SelectedCourses(props: SelectedCoursesProps) {
                 (course) => course.courseCode === courseCode
               );
 
-              return selectedCourses.with(arrayIndex, {
+              const newSelectedCourses = [...selectedCourses];
+
+              newSelectedCourses[arrayIndex] = {
                 courseCode,
                 enabledStudentGroups: [],
                 term,
-              });
+              };
+
+              return newSelectedCourses;
             })
           }
           semester={selectedSemester}
@@ -66,11 +71,15 @@ export function SelectedCourses(props: SelectedCoursesProps) {
                 );
               }
 
-              return selectedCourses.with(arrayIndex, {
+              const newSelectedCourses = [...selectedCourses];
+
+              newSelectedCourses[arrayIndex] = {
                 courseCode,
                 enabledStudentGroups: newEnabledStudentGroups,
                 term,
-              });
+              };
+
+              return newSelectedCourses;
             })
           }
         />
