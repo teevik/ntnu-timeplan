@@ -2,7 +2,7 @@
 
 export type Procedures = {
     queries: 
-        { key: "activities", input: ActivitiesQuery, result: Activity[] } | 
+        { key: "activities", input: CourseIdentifier, result: Activity[] } | 
         { key: "courses", input: never, result: { [key: string]: Course } } | 
         { key: "encode-calendar-query", input: CalendarQuery[], result: string } | 
         { key: "semesters", input: never, result: SemestersWithCurrent },
@@ -12,11 +12,9 @@ export type Procedures = {
 
 export type SemestersWithCurrent = { semesters: { [key: string]: Semester }; currentSemester: string }
 
-export type ActivitiesQuery = { courseCode: string; courseTerm: number; semester: string }
-
 export type CourseIdentifier = { courseCode: string; courseTerm: number; semester: string }
 
-export type CalendarQuery = { identifier: CourseIdentifier; studentGroups: string[] }
+export type CalendarQuery = { identifier: CourseIdentifier; studentGroups: string[]; customName: string | null }
 
 export type Course = { name: string; amountOfTerms: number }
 
