@@ -2,9 +2,19 @@ import { Header } from "./Header";
 import { globalCss, css } from "./theme";
 import { useSearchParam } from "./hooks/useSearchParam";
 import { rspc } from "./rspc";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SearchBar } from "./SearchBar";
 import { SelectedCourses } from "./SelectedCourses";
+import { CalendarQuery } from "../../api/bindings";
+import { calendarEndpoint } from "./main";
+
+function useEncodeCalendarQuery(queries: CalendarQuery[]) {
+  const query = rspc.useQuery(["encode-calendar-query", queries], {
+    suspense: true,
+  }).data!;
+
+  return query;
+}
 
 const globalStyles = globalCss({
   body: {
@@ -53,6 +63,7 @@ export function App() {
 
     return [];
   });
+
   useEffect(() => {
     setSearchParam(btoa(JSON.stringify(selectedCourses)));
   }, [selectedCourses]);
@@ -61,6 +72,18 @@ export function App() {
     "semester",
     semesters.currentSemester
   );
+
+  const calendarQuery = useEncodeCalendarQuery(
+    selectedCourses.map(({ courseCode, term, enabledStudentGroups }) => ({
+      customName: courses[courseCode].name,
+      identifier: { courseCode, courseTerm: term, semester: selectedSemester },
+      studentGroups: enabledStudentGroups,
+    }))
+  );
+
+  const webcalUrl = "webcal://ntnu-timeplan-api.fly.dev";
+
+  const calendarQueryUrl = `${webcalUrl}/calendar.ics?query=${calendarQuery}`;
 
   return (
     <div>
@@ -83,6 +106,10 @@ export function App() {
           selectedCourses={selectedCourses}
           setSelectedCourses={setSelectedCourses}
         />
+
+        <a style={{ marginTop: "20px" }} href={calendarQueryUrl}>
+          {calendarQueryUrl}
+        </a>
       </main>
     </div>
   );

@@ -8,11 +8,16 @@ import { QueryClient } from "@tanstack/react-query";
 import { rspc } from "./rspc";
 
 const endpoint = import.meta.env.PROD
-  ? "https://ntnu-timeplan-api.fly.dev/rspc"
-  : "http://0.0.0.0:8080/rspc";
+  ? "https://ntnu-timeplan-api.fly.dev"
+  : "http://0.0.0.0:8080";
+
+export const calendarEndpoint = (encodedQuery: string) =>
+  `${endpoint}/calendar.ics?query=${encodedQuery}`;
+
+const rspcEndpoint = `${endpoint}/rspc`;
 
 const client = createClient<Procedures>({
-  transport: new FetchTransport(endpoint),
+  transport: new FetchTransport(rspcEndpoint),
 });
 
 const queryClient = new QueryClient();
