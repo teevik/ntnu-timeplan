@@ -107,7 +107,10 @@ export function App() {
           setSelectedCourses={setSelectedCourses}
         />
 
-        <a style={{ marginTop: "20px" }} href={calendarQueryUrl}>
+        <a
+          style={{ marginTop: "20px", wordBreak: "break-all" }}
+          href={calendarQueryUrl}
+        >
           {calendarQueryUrl}
         </a>
       </main>
