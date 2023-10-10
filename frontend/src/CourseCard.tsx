@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from "react";
+import { Suspense, startTransition, useMemo } from "react";
 import { CheckIcon, Cross1Icon } from "@radix-ui/react-icons";
 import { Label } from "@radix-ui/react-label";
 import { rspc } from "./rspc";
@@ -100,7 +100,11 @@ function SelectStudentGroups(props: SelectStudentGroupsProps) {
                 <Checkbox.Root
                   className={Styles.StudentGroups.checkbox()}
                   checked={enabledStudentGroups.includes(studentGroup)}
-                  onClick={() => toggleStudentGroup(studentGroup)}
+                  onClick={() => {
+                    startTransition(() => {
+                      toggleStudentGroup(studentGroup);
+                    });
+                  }}
                 >
                   <Checkbox.Indicator
                     className={Styles.StudentGroups.indicator()}
