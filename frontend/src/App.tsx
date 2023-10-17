@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SearchBar } from "./SearchBar";
 import { SelectedCourses } from "./SelectedCourses";
 import { CalendarQuery } from "../../api/bindings";
-import { calendarEndpoint } from "./main";
+import { AddToCalendar } from "./AddToCalendar";
 
 function useEncodeCalendarQuery(queries: CalendarQuery[]) {
   const query = rspc.useQuery(["encode-calendar-query", queries], {
@@ -81,10 +81,6 @@ export function App() {
     }))
   );
 
-  const webcalUrl = "webcal://ntnu-timeplan-api.fly.dev";
-
-  const calendarQueryUrl = `${webcalUrl}/calendar.ics?query=${calendarQuery}`;
-
   return (
     <div>
       <Header
@@ -107,12 +103,10 @@ export function App() {
           setSelectedCourses={setSelectedCourses}
         />
 
-        <a
-          style={{ marginTop: "20px", wordBreak: "break-all" }}
-          href={calendarQueryUrl}
-        >
-          {calendarQueryUrl}
-        </a>
+        <AddToCalendar
+          calendarQuery={calendarQuery}
+          isEnabled={selectedCourses.length != 0}
+        />
       </main>
     </div>
   );

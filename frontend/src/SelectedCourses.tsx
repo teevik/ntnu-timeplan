@@ -1,4 +1,4 @@
-import { Dispatch } from "react";
+import { Dispatch, startTransition } from "react";
 import { SelectedCourseState } from "./App";
 import { CourseCard } from "./CourseCard";
 import { Course } from "../../api/bindings";
@@ -43,13 +43,15 @@ export function SelectedCourses(props: SelectedCoursesProps) {
           }
           semester={selectedSemester}
           course={courses[courseCode]}
-          onRemove={() =>
-            setSelectedCourses(() =>
-              selectedCourses.filter(
-                (selectedCourse) => selectedCourse.courseCode !== courseCode
-              )
-            )
-          }
+          onRemove={() => {
+            startTransition(() => {
+              setSelectedCourses(() =>
+                selectedCourses.filter(
+                  (selectedCourse) => selectedCourse.courseCode !== courseCode
+                )
+              );
+            });
+          }}
           enabledStudentGroups={enabledStudentGroups}
           toggleStudentGroup={(studentGroup) =>
             setSelectedCourses(() => {
