@@ -96,16 +96,16 @@ export function App() {
           setSelectedCourses={setSelectedCourses}
         />
 
+        <AddToCalendar
+          calendarQuery={calendarQuery}
+          isEnabled={selectedCourses.length != 0}
+        />
+
         <SelectedCourses
           courses={courses}
           selectedSemester={selectedSemester}
           selectedCourses={selectedCourses}
           setSelectedCourses={setSelectedCourses}
-        />
-
-        <AddToCalendar
-          calendarQuery={calendarQuery}
-          isEnabled={selectedCourses.length != 0}
         />
       </main>
     </div>

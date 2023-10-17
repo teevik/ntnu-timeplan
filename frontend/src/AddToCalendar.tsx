@@ -37,14 +37,14 @@ export function AddToCalendar(props: AddToCalendarProps) {
 
   return (
     <div className={Styles.container()}>
-      <h1 className={Styles.title()}>Add to calendar</h1>
+      <h1 className={Styles.title()}>Legg til i kalender:</h1>
 
       <a
         href={isEnabled ? webcalCalendarUrl : undefined}
         className={Styles.button({ state: isEnabled ? "enabled" : "disabled" })}
       >
         <Apple />
-        Add to Apple Calendar
+        Legg til i Apple Calendar
       </a>
       <button
         onClick={onClickCopyICal}
@@ -52,7 +52,7 @@ export function AddToCalendar(props: AddToCalendarProps) {
         className={Styles.button({ state: isEnabled ? "enabled" : "disabled" })}
       >
         <CalendarMonth />
-        {recentlyCopied ? "Copied!" : "Copy ICal subscription URL"}
+        {recentlyCopied ? "Kopiert!" : "Kopier ICal subskripsjon URL"}
       </button>
     </div>
   );
@@ -65,7 +65,7 @@ namespace Styles {
     gap: "$3",
 
     padding: "$4 $4",
-    marginTop: "$4",
+    marginBottom: "$4",
 
     backgroundColor: "color-mix(in lch, $background, white 5%)",
   });

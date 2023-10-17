@@ -91,7 +91,7 @@ function SelectStudentGroups(props: SelectStudentGroupsProps) {
       <hr />
 
       <div>
-        <p>Student groups</p>
+        <p>Student grupper</p>
 
         <div className={Styles.StudentGroups.container()}>
           {Array.from(allStudentGroups.values()).map((studentGroup) => (

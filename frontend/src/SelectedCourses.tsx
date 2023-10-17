@@ -17,8 +17,14 @@ export function SelectedCourses(props: SelectedCoursesProps) {
   const { courses, selectedSemester, selectedCourses, setSelectedCourses } =
     props;
 
+  const isEmpty = selectedCourses.length == 0;
+
   return (
     <div className={Styles.container()}>
+      {isEmpty && (
+        <h1 className={Styles.noSelectedStudies()}>Ingen valgte studier...</h1>
+      )}
+
       {selectedCourses.map(({ courseCode, enabledStudentGroups, term }) => (
         <CourseCard
           key={courseCode}
@@ -98,5 +104,12 @@ namespace Styles {
     "@media (min-width: 840px)": {
       gridTemplateColumns: "1fr 1fr",
     },
+  });
+
+  export const noSelectedStudies = css({
+    gridColumn: "1/-1",
+    marginLeft: "auto",
+    marginRight: "auto",
+    opacity: "0.7",
   });
 }
