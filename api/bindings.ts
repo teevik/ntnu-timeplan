@@ -3,14 +3,14 @@
 export type Procedures = {
     queries: 
         { key: "activities", input: CourseIdentifier, result: Activity[] } | 
-        { key: "courses", input: never, result: { [key: string]: Course } } | 
+        { key: "courses", input: CoursesQuery, result: { [key: string]: Course } } | 
         { key: "encode-calendar-query", input: CalendarQuery[], result: string } | 
         { key: "semesters", input: never, result: SemestersWithCurrent },
     mutations: never,
     subscriptions: never
 };
 
-export type SemestersWithCurrent = { semesters: { [key: string]: Semester }; currentSemester: string }
+export type CoursesQuery = { semester: string }
 
 export type CourseIdentifier = { courseCode: string; courseTerm: number; semester: string }
 
@@ -23,5 +23,7 @@ export type StaffMember = { firstName: string; lastName: string }
 export type Activity = { id: string; courseCode: string; week: number; start: string; end: string; title: string; summary: string; staffMembers: StaffMember[]; studentGroups: string[]; rooms: Room[] }
 
 export type Semester = { name: string }
+
+export type SemestersWithCurrent = { semesters: { [key: string]: Semester }; currentSemester: string }
 
 export type Room = { name: string; buildingName: string; url: string }

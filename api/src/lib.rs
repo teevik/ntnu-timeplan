@@ -1,5 +1,3 @@
-#![feature(async_closure)]
-
 use crate::caching::activities_cache::ActivitiesCache;
 use crate::caching::courses_cache::CoursesCache;
 use crate::caching::semesters_cache::SemestersCache;
@@ -22,7 +20,7 @@ pub struct AppState {
 impl AppState {
     pub async fn new(reqwest_client: &reqwest::Client) -> anyhow::Result<Self> {
         let activities_cache: ActivitiesCache = ActivitiesCache::new(reqwest_client.clone());
-        let courses_cache = CoursesCache::new(reqwest_client.clone()).await?;
+        let courses_cache = CoursesCache::new(reqwest_client.clone()).await;
         let semesters_cache = SemestersCache::new(reqwest_client.clone()).await?;
 
         Ok(Self {

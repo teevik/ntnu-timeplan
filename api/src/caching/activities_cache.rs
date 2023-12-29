@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use time::ext::NumericalStdDuration;
 use tokio::time::sleep;
-use tracing::info;
+use tracing::{error, info};
 
 pub struct ActivitiesCache {
     client: Client,
@@ -53,6 +53,11 @@ impl ActivitiesCache {
                 info!("Retrying to fetch activities for {:?}", &course_identifier);
             }
         }
+
+        error!(
+            "Failed to fetch activities for {:?} after {MAX_RETRIES} retries",
+            course_identifier
+        );
 
         Ok(Arc::new(Vec::new()))
     }

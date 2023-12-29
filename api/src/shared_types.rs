@@ -53,6 +53,7 @@ pub struct CourseIdentifier {
 pub struct Semester {
     pub name: String,
 }
+
 #[derive(specta::Type, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SemestersWithCurrent {
@@ -65,7 +66,7 @@ pub struct SemestersWithCurrent {
 pub struct CalendarQuery {
     pub identifier: CourseIdentifier,
     pub student_groups: Vec<String>,
-    pub custom_name: Option<String>
+    pub custom_name: Option<String>,
 }
 
 #[derive(specta::Type, Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -73,4 +74,10 @@ pub struct CalendarQuery {
 pub struct OldCalendarQuery {
     pub identifier: CourseIdentifier,
     pub student_groups: Vec<String>,
+}
+
+#[derive(specta::Type, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct CoursesQuery {
+    pub semester: String,
 }

@@ -5,9 +5,11 @@ use std::collections::HashMap;
 
 use crate::shared_types::Course;
 
-pub async fn fetch_courses(client: &Client) -> AppResult<HashMap<String, Course>> {
+pub async fn fetch_courses(semester: &str, client: &Client) -> AppResult<HashMap<String, Course>> {
     let res = client
-        .get("https://tp.uio.no/ntnu/timeplan/emner.php")
+        .get(format!(
+            "https://tp.uio.no/ntnu/timeplan/emner.php?sem={semester}"
+        ))
         .send()
         .await?;
 

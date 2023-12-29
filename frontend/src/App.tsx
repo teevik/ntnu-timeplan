@@ -2,7 +2,7 @@ import { Header } from "./Header";
 import { globalCss, css } from "./theme";
 import { useSearchParam } from "./hooks/useSearchParam";
 import { rspc } from "./rspc";
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { SearchBar } from "./SearchBar";
 import { SelectedCourses } from "./SelectedCourses";
 import { CalendarQuery } from "../../api/bindings";
@@ -44,9 +44,7 @@ export function App() {
     suspense: true,
   }).data!;
 
-  const courses = rspc.useQuery(["courses"], {
-    suspense: true,
-  }).data!;
+
 
   // TODO refactor out to a single hook
   let [searchParam, setSearchParam] = useSearchParam("courses", "");
@@ -73,6 +71,8 @@ export function App() {
     semesters.currentSemester
   );
 
+  const courses = rspc.useQuery(["courses", useMemo(() => ({ semester: selectedSemester }), [selectedSemester])], { suspense: true }).data!;
+
   const calendarQuery = useEncodeCalendarQuery(
     selectedCourses.map(({ courseCode, term, enabledStudentGroups }) => ({
       customName: courses[courseCode].name,
@@ -86,7 +86,14 @@ export function App() {
       <Header
         semesters={semesters}
         selectedSemester={selectedSemester}
-        setSelectedSemester={setSelectedSemester}
+        setSelectedSemester={(semester) => {
+          if (semester != selectedSemester) {
+            startTransition(() => {
+              setSelectedCourses([]);
+              setSelectedSemester(semester);
+            })
+          }
+        }}
       />
 
       <main className={Styles.container()}>

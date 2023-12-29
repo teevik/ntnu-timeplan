@@ -1,49 +1,37 @@
 use crate::error::AppResult;
 use crate::fetch::courses::fetch_courses;
 use crate::shared_types::Course;
+use mini_moka::sync::Cache;
 use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tokio::sync::RwLock;
+use time::ext::NumericalStdDuration;
 use tracing::info;
 
 #[derive(Debug)]
 pub struct CoursesCache {
     client: Client,
-    last_time_fetched: RwLock<Instant>,
-    courses: RwLock<Arc<HashMap<String, Course>>>,
+    cache: Cache<String, Arc<HashMap<String, Course>>>,
 }
 
 impl CoursesCache {
-    pub async fn new(client: Client) -> anyhow::Result<Self> {
-        let courses = fetch_courses(&client).await?;
-        let last_time_fetched = Instant::now();
+    pub async fn new(client: Client) -> Self {
+        let cache = Cache::builder().time_to_live(2.std_weeks()).build();
 
-        Ok(Self {
-            client,
-            last_time_fetched: RwLock::new(last_time_fetched),
-            courses: RwLock::new(Arc::new(courses)),
-        })
+        Self { client, cache }
     }
 
-    pub async fn get_or_fetch(&self) -> AppResult<Arc<HashMap<String, Course>>> {
-        const CACHE_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 7); // 1 week
+    pub async fn get_or_fetch(&self, semester: String) -> AppResult<Arc<HashMap<String, Course>>> {
+        if let Some(cache_result) = self.cache.get(&semester) {
+            return Ok(cache_result);
+        }
 
-        let last_time_fetched = *self.last_time_fetched.read().await;
-        let cache_out_of_date = Instant::now() > (last_time_fetched + CACHE_DURATION);
+        info!("Fetching courses for {semester}");
 
-        if cache_out_of_date {
-            info!("Fetching courses");
+        let courses = fetch_courses(&semester, &self.client).await?;
+        let courses = Arc::new(courses);
 
-            let courses = fetch_courses(&self.client).await?;
-
-            *self.last_time_fetched.write().await = Instant::now();
-            *self.courses.write().await = Arc::new(courses);
-        };
-
-        let cached_courses: Arc<HashMap<String, Course>> = self.courses.read().await.clone();
-
-        Ok(cached_courses)
+        self.cache.insert(semester.clone(), courses.clone());
+        Ok(courses)
     }
 }
